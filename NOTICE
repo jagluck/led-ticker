@@ -6,3 +6,11 @@ This product includes software developed by Sunil Sayala.
 The firmware and the Python client (tools/led_ticker) are licensed under the
 Apache License, Version 2.0 (see LICENSE). Hardware design files in hardware/
 are licensed under CC BY 4.0 (see hardware/LICENSE). Attribution required.
+
+Third-party fonts
+-----------------
+The panel's static face is rendered from Press Start 2P, Copyright 2012 The
+Press Start 2P Project Authors (cody@zone38.net), licensed under the SIL Open
+Font License, Version 1.1. The font and its license are bundled at
+tools/fonts/PressStart2P-Regular.ttf and tools/fonts/OFL.txt; the firmware
+embeds a bitmap derived from it (firmware/src/pressstart_font.h).

@@ -14,6 +14,7 @@
 #include "config.h"
 #include "console.h"
 #include "logic.h"
+#include "pressstart_font.h"
 #include "version.h"
 
 // ============================================================================
@@ -448,21 +449,40 @@ MD_Parola display = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
 // only one is ever active, and we overwrite only when starting the next scroll.
 static char scrollBuf[MAX_STRING_LEN + 1];
 
-// The panel uses two faces: the bold face (bold_font.h) for static content and
-// the library's built-in system font for anything that scrolls — bold's 2px
-// strokes ghost in motion, and the thin stock font stays crisp even at a fast
-// scroll. setFont(nullptr) selects _sysfont (MD_MAX72xx_font.cpp). The scroll
-// face is plain mixed-case stock; only the static face is all-caps.
+// The panel uses two faces:
+//   - staticFace — Press Start 2P (pressstart_font.h) — for everything steady:
+//     text, signs, clock, timer, setup. a-z fold onto A-Z, so it renders
+//     all-caps (PS2P's lowercase has descenders that don't fit 8 rows). Its
+//     digits are hand-condensed to 6px (see gen_pressstart_font.py) so a
+//     five-glyph time (clock HH:MM, timer MM:SS) fits the 32-col panel; the
+//     original 7px digits would overflow or squish.
+//   - the built-in system font for anything that scrolls — heavier faces ghost
+//     in motion, and the thin stock font stays crisp at a fast scroll.
+//     setFont(nullptr) selects _sysfont (MD_MAX72xx_font.cpp), plain mixed-case.
 // setFont only takes effect at the next text parse (displayText/displayScroll or
-// a displayReset re-parse). Static sites assert the bold face right before
+// a displayReset re-parse). Static sites assert the static face right before
 // rendering; every scroll routes through scrollTextAt(), so the scroll face is
 // structural rather than remembered per site. const_cast is safe: setFont only
 // reads the table (pgm_read_byte).
+//
+// bold_font.h stays compiled as a second, non-default face so a future BLE
+// font-select verb has something to switch to; staticFace is the single point
+// it would flip (read an NVS key, reassign, re-parse). Today it's a constant.
+static const MD_MAX72XX::fontType_t* staticFace = PRESSSTART_FONT;
 static void useStaticFont() {
-  display.setFont(const_cast<MD_MAX72XX::fontType_t*>(BOLD_FONT));
+  display.setFont(const_cast<MD_MAX72XX::fontType_t*>(staticFace));
 }
 static void useScrollFont() {
   display.setFont(nullptr);  // built-in system font
+}
+
+// Steady clock/timer render. The static face's condensed digits fit a five-glyph
+// time on the panel. The caller clears first if it needs to (the clock does; the
+// timer overwrites in place).
+static void renderSteadyNumber(const char* buf) {
+  useStaticFont();
+  display.displayText(buf, PA_CENTER, 0, 0, PA_PRINT, PA_NO_EFFECT);
+  display.displayAnimate();
 }
 
 void initDisplay() {
@@ -832,23 +852,19 @@ void showNextWeather() {
   scrollText(scrollBuf);
 }
 
-// 12-hour HH:MM AM/PM. Used by the scrolling rotation when BIT_CLOCK shares
-// the mask with other categories. Single-clock mode uses tickStaticClock().
+// 24-hour HH:MM. Used by the scrolling rotation when BIT_CLOCK shares the mask
+// with other categories. Single-clock mode uses tickStaticClock().
 void showNextClock() {
   struct tm t;
   if (!getLocalTime(&t, 50)) {
     scrollText("Loading time...");
     return;
   }
-  int h = t.tm_hour;
-  const char* ampm = (h >= 12) ? "PM" : "AM";
-  int h12 = h % 12;
-  if (h12 == 0) h12 = 12;
-  snprintf(scrollBuf, sizeof(scrollBuf), "%d:%02d %s", h12, t.tm_min, ampm);
+  snprintf(scrollBuf, sizeof(scrollBuf), "%02d:%02d", t.tm_hour, t.tm_min);
   scrollText(scrollBuf);
 }
 
-// Steady "H:MM", only when enabledMask == BIT_CLOCK alone. Drives the
+// Steady 24-hour "HH:MM", only when enabledMask == BIT_CLOCK alone. Drives the
 // display directly, bypassing the scroll pump in loop(). File-scope cache
 // so a timezone change can force an immediate repaint (same-minute hour
 // jumps would otherwise sit stale for up to a minute).
@@ -859,15 +875,10 @@ void tickStaticClock() {
   if (!getLocalTime(&t, 0)) return;
   if (staticClockLastMin == t.tm_min) return;
 
-  int h12 = t.tm_hour % 12;
-  if (h12 == 0) h12 = 12;
-
-  snprintf(scrollBuf, sizeof(scrollBuf), "%d:%02d", h12, t.tm_min);
+  snprintf(scrollBuf, sizeof(scrollBuf), "%02d:%02d", t.tm_hour, t.tm_min);
 
   display.displayClear();
-  useStaticFont();
-  display.displayText(scrollBuf, PA_CENTER, 0, 0, PA_PRINT, PA_NO_EFFECT);
-  display.displayAnimate();
+  renderSteadyNumber(scrollBuf);
 
   staticClockLastMin = t.tm_min;
 }
@@ -1356,19 +1367,18 @@ void tickTimer() {
     return;
   }
 
-  // Ceil to whole seconds so a fresh N-minute timer shows "N:00" and the
-  // last visible value is "0:01" (we switch to explosion at 0).
+  // Ceil to whole seconds so a fresh N-minute timer shows "NN:00" and the
+  // last visible value is "00:01" (we switch to explosion at 0).
   int totalSec = (remainMs + 999) / 1000;
   if (totalSec == lastShownTimerSec) return;  // redraw only on change
   lastShownTimerSec = totalSec;
 
   // static: MD_Parola keeps the pointer — a stack-local would dangle and
-  // re-render as garbage on the next FSM step.
+  // re-render as garbage on the next FSM step. Zero-padded MM:SS (minutes are
+  // capped at TIMER_MAX_MINUTES=99) matches the 24h clock's HH:MM.
   static char buf[6];  // "MM:SS" + NUL, max "99:00"
-  snprintf(buf, sizeof(buf), "%d:%02d", totalSec / 60, totalSec % 60);
-  useStaticFont();
-  display.displayText(buf, PA_CENTER, 0, 0, PA_PRINT, PA_NO_EFFECT);
-  display.displayAnimate();
+  snprintf(buf, sizeof(buf), "%02d:%02d", totalSec / 60, totalSec % 60);
+  renderSteadyNumber(buf);
 }
 
 // ============================================================================

@@ -17,7 +17,10 @@ Repository = "https://github.com/ssayala/led-ticker"
 led = "led_ticker.cli:main"
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+dev = [
+    "pillow>=10",
+    "pytest>=8",
+]
 
 [build-system]
 requires = ["hatchling"]

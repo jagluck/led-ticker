@@ -33,7 +33,7 @@ UUID `...26aa` was once a "Messages" characteristic and is **not** registered in
 Comma-separated symbols. Example: `AAPL,MSFT,GOOGL`. Up to 10 symbols, 15 chars each.
 
 ### Mode
-A single category (`stocks`, `weather`, `clock`), `all`, `none`, or a comma-separated subset (e.g. `stocks,weather`). Persisted to NVS. The device round-robins through enabled categories. When `clock` is the *only* enabled category the display shows a steady `H:MM`; mixed with others it scrolls `H:MM AM/PM`.
+A single category (`stocks`, `weather`, `clock`), `all`, `none`, or a comma-separated subset (e.g. `stocks,weather`). Persisted to NVS. The device round-robins through enabled categories. When `clock` is the *only* enabled category the display shows a steady 24-hour `HH:MM`; mixed with others it scrolls the same `HH:MM`.
 
 `none` is sign-only mode: no ambient rotation; between signs the display sits on the dim bouncing-pixel idle state. Reads return `"none"`.
 
