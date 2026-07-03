@@ -115,6 +115,8 @@ def embolden(vals: list[int]) -> list[int]:
     - Fold a-z onto the A-Z shapes: each lowercase code emits its uppercase
       glyph, so the panel physically renders all-caps whatever the input case.
       (An LED ticker reads better in caps; lowercase bold looked muddy.)
+    - Pad the digits 0-9 to a uniform width (tabular figures) so numbers that
+      update in place — clock, timer, prices — don't jitter as a value changes.
     """
     first = (vals[2] << 8) | vals[3]  # v2 header: 'F',2, firstHi,firstLo, lastHi,lastLo, height
     # Parse every glyph into a list indexed by (code - first); each entry is its
@@ -128,7 +130,7 @@ def embolden(vals: list[int]) -> list[int]:
         glyphs.append(vals[i:i + width])
         i += width
 
-    out = vals[:HEADER_LEN]
+    built: list[tuple[str, list[int]]] = []
     for idx, cols in enumerate(glyphs):
         ch = chr(first + idx)
         tgt = chr(first + idx - 0x20) if "a" <= ch <= "z" else ch  # folded target
@@ -145,6 +147,16 @@ def embolden(vals: list[int]) -> list[int]:
             g = _embolden_cols(src)
         else:  # blank cells / space: unchanged, so spacing doesn't grow
             g = list(src)
+        built.append((ch, g))
+
+    # Tabular digits: pad every 0-9 glyph (centered) to the widest digit so the
+    # colon and trailing digits never shift as a clock/timer/price updates.
+    digit_width = max(len(g) for ch, g in built if "0" <= ch <= "9")
+    out = vals[:HEADER_LEN]
+    for ch, g in built:
+        if "0" <= ch <= "9" and len(g) < digit_width:
+            pad = digit_width - len(g)
+            g = [0] * (pad // 2) + g + [0] * (pad - pad // 2)
         out.append(len(g))
         out.extend(g)
     return out
