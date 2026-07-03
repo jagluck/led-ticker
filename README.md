@@ -34,7 +34,7 @@ A [Freenove ESP32-S3-WROOM (FNK0099)](https://store.freenove.com/products/fnk009
 
 No toolchain? Flash released firmware straight from a browser at **[ledticker.app/flash](https://ledticker.app/flash)**.
 
-Provision from the mobile app or the CLI. (The Wokwi simulator has no BLE — there you provision over a [USB serial console](GETTING_STARTED.md#provisioning-over-usb-serial-opt-in--wokwi) instead.)
+Provision from the mobile app or the CLI.
 
 ## Documentation
 
