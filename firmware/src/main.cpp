@@ -1402,10 +1402,14 @@ static volatile unsigned long lastBLEFetchMs = 0;
 char bleDeviceName[24];
 
 // Suffix MAC bytes so multiple units on the same bench are distinguishable.
+// getEfuseMac() returns the 6 bytes byte-reversed, so the low two bytes are the
+// shared Espressif OUI (identical across a batch — many units collide on the
+// same suffix). Use the top two bytes (mac[5], mac[4]) — the per-device NIC
+// portion — for a suffix that's unique regardless of manufacturing lot.
 void buildDeviceName() {
   uint64_t mac = ESP.getEfuseMac();
   snprintf(bleDeviceName, sizeof(bleDeviceName), "%s-%02X%02X", BLE_DEVICE_NAME,
-           (uint8_t)((mac >> 8) & 0xFF), (uint8_t)(mac & 0xFF));
+           (uint8_t)((mac >> 40) & 0xFF), (uint8_t)((mac >> 32) & 0xFF));
 }
 
 // ----------------------------------------------------------------------------
