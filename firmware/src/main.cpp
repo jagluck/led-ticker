@@ -1129,6 +1129,8 @@ static void invalidateStatusRender() { statusShown[0] = '\0'; }
 // After a sign clears: content if a mask is enabled and prereqs are met,
 // else idle (never back into the setup scroll or a "Loading…" loop).
 static void resumeAmbient() {
+  staticClockLastMin = -1;  // force an immediate steady-clock repaint, else
+                            // the clock stays blank until the next minute
   if (enabledMask != 0 && maskPrereqsReady(enabledMask))
     enterContent();
   else
