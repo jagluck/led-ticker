@@ -42,12 +42,6 @@ const int defaultLocationCount =
 #define SETUP_SCROLL_SPEED 100
 #define DISPLAY_INTENSITY 2  // 0–15
 
-// Static-sign "breathing": intensity dips up to SIGN_BREATH_AMPLITUDE below
-// the configured brightness (floor 0), so the user's setting is the
-// brightest the sign gets. ~3 s per full breath at 400 ms/step.
-#define SIGN_BREATH_AMPLITUDE 4
-#define SIGN_BREATH_STEP_MS 400
-
 // --- Timer mode (countdown sign) ---
 // Whole-minute countdown rendered as MM:SS, then the end-of-timer animation.
 #define TIMER_MAX_MINUTES 99

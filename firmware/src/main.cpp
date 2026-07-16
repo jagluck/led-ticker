@@ -979,7 +979,7 @@ static uint8_t firstActiveBit() {
 // --- Mode transitions ---
 
 // Every enter*() calls resetDisplay() and re-asserts displayBrightness (the
-// breath/flash animations may have left another level). Re-entering IDLE
+// timer flash animation may have left another level). Re-entering IDLE
 // while already idle preserves pixel position — no snap-back to col 0.
 
 // displayClear() blanks the LED buffer but does NOT reset MD_Parola's
@@ -1162,19 +1162,13 @@ static void clearActiveStatusAndResume() {
   resumeAmbient();  // enter*() helpers clear the display on transition
 }
 
-// Static signs "breathe": intensity dips up to SIGN_BREATH_AMPLITUDE below
-// displayBrightness and recovers, one step per SIGN_BREATH_STEP_MS.
-// Scrolling signs already have motion — steady brightness.
-static int signBreathLevel = DISPLAY_INTENSITY;
-static int signBreathDir = -1;
-static unsigned long signBreathStepMs = 0;
-
+// Signs display steady at the configured brightness. Scrolling signs already
+// have motion; static signs just hold.
 void tickActiveStatus() {
   if (strcmp(statusShown, activeStatusText) != 0) {
     strncpy(statusShown, activeStatusText, sizeof(statusShown) - 1);
     statusShown[sizeof(statusShown) - 1] = '\0';
     statusShownIsScroll = strlen(activeStatusText) > STATUS_STATIC_MAX_CHARS;
-    // Restore steady brightness in case the previous sign was mid-breath.
     display.setIntensity(displayBrightness);
     display.displayClear();
     if (statusShownIsScroll) {
@@ -1186,37 +1180,15 @@ void tickActiveStatus() {
       display.displayText(activeStatusText, PA_CENTER, 0, 0, PA_PRINT,
                           PA_NO_EFFECT);
       display.displayAnimate();
-      // Fresh sign: start the breath at full brightness, dipping first.
-      signBreathLevel = displayBrightness;
-      signBreathDir = -1;
-      signBreathStepMs = millis();
     }
   }
 
   if (statusShownIsScroll) {
-    // Scroll path: just pump the animation. No breathing.
+    // Scroll path: pump the animation and loop.
     if (display.displayAnimate())
-      display.displayReset();  // loop the same scroll
-    return;
+      display.displayReset();
   }
-
-  // Static path: step the breathing intensity when the timer elapses.
-  unsigned long now = millis();
-  if (now - signBreathStepMs < SIGN_BREATH_STEP_MS) return;
-  signBreathStepMs = now;
-  // Bounds recomputed each step so a mid-sign brightness change re-clamps.
-  int breathTop = displayBrightness;
-  int breathFloor =
-      breathTop > SIGN_BREATH_AMPLITUDE ? breathTop - SIGN_BREATH_AMPLITUDE : 0;
-  signBreathLevel += signBreathDir;
-  if (signBreathLevel >= breathTop) {
-    signBreathLevel = breathTop;
-    signBreathDir = -1;
-  } else if (signBreathLevel <= breathFloor) {
-    signBreathLevel = breathFloor;
-    signBreathDir = 1;
-  }
-  display.setIntensity(signBreathLevel);
+  // Static path: nothing to do — steady display already drawn.
 }
 
 // --- Timer mode (countdown sign) ---

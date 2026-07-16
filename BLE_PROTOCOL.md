@@ -83,7 +83,6 @@ Write `brightness|scroll_ms` — e.g. `4|70`. Brightness is the MAX7219 intensit
 
 - Persisted to NVS; survives reboot. Factory reset reverts both to the `config.h` defaults (brightness 2, scroll 70).
 - Applied immediately — brightness everywhere, scroll speed including an in-flight scroll. Setup mode keeps its own fixed slower scroll until configuration completes.
-- Static-sign "breathing" dips up to 4 intensity levels below the configured brightness and recovers, so the setting is the brightest the sign ever gets; the dip clamps at 0 (a brightness-0 sign holds steady).
 - Older firmwares won't expose this characteristic.
 
 ### Timezone
