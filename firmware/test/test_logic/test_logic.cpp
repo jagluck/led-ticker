@@ -197,6 +197,31 @@ void test_market_weekend_closed(void) {
   TEST_ASSERT_FALSE(isMarketOpenAt(utcEpoch(2026, 7, 19, 15, 0)));
 }
 
+// ---------------------------------------------------------------------------
+// shouldFetchStocks — args: (force, marketOpen, haveData, marketWasOpen)
+// ---------------------------------------------------------------------------
+void test_fetch_in_session(void) {
+  // Market open: always fetch, regardless of prior state.
+  TEST_ASSERT_TRUE(shouldFetchStocks(false, true, true, true));
+  TEST_ASSERT_TRUE(shouldFetchStocks(false, true, true, false));
+}
+void test_fetch_cold_boot_offhours(void) {
+  // No data yet: fetch even with the market closed (e.g. weekend cold boot).
+  TEST_ASSERT_TRUE(shouldFetchStocks(false, false, false, false));
+}
+void test_fetch_force_when_closed(void) {
+  // Config change / explicit refresh overrides the closed-market skip.
+  TEST_ASSERT_TRUE(shouldFetchStocks(true, false, true, false));
+}
+void test_fetch_close_transition(void) {
+  // Just closed (was open, now closed) with data: fetch once to grab the close.
+  TEST_ASSERT_TRUE(shouldFetchStocks(false, false, true, true));
+}
+void test_fetch_skip_when_settled_closed(void) {
+  // Already closed on the prior tick, data in hand: skip, hold last prices.
+  TEST_ASSERT_FALSE(shouldFetchStocks(false, false, true, false));
+}
+
 void setUp(void) {}
 void tearDown(void) {}
 
@@ -230,5 +255,10 @@ int main(int, char**) {
   RUN_TEST(test_market_open_close_edges_dst);
   RUN_TEST(test_market_open_edge_standard_time);
   RUN_TEST(test_market_weekend_closed);
+  RUN_TEST(test_fetch_in_session);
+  RUN_TEST(test_fetch_cold_boot_offhours);
+  RUN_TEST(test_fetch_force_when_closed);
+  RUN_TEST(test_fetch_close_transition);
+  RUN_TEST(test_fetch_skip_when_settled_closed);
   return UNITY_END();
 }

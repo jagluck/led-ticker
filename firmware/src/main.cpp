@@ -611,9 +611,15 @@ static void commitStocks(const StockQuote* tmp, int count) {
 static void fetchStocksImpl(bool force) {
   if (!apiKeyConfigured() || WiFi.status() != WL_CONNECTED) return;
 
-  // Market closed: keep whatever we last fetched in RAM. Only hit the API
-  // if we have no data at all (e.g. cold boot on a weekend).
-  if (!force && !isMarketOpen() && stockCount > 0) return;
+  // Fetch during market hours, on force/cold boot, and exactly once on the
+  // open->closed transition so the price we hold overnight is the settled
+  // close, not a quote from up to FETCH_INTERVAL_MS before 16:00. marketWasOpen
+  // is consumed only on a successful commit below, so a failed close fetch
+  // retries on the next tick instead of silently missing the close.
+  static bool marketWasOpen = false;
+  bool marketOpen = isMarketOpen();
+  if (!shouldFetchStocks(force, marketOpen, stockCount > 0, marketWasOpen))
+    return;
 
   StockQuote tmp[MAX_STOCKS];
   int count = 0;
@@ -669,6 +675,9 @@ static void fetchStocksImpl(bool force) {
 
   if (count > 0) {
     commitStocks(tmp, count);
+    // Remember the session state only now that we actually captured data, so
+    // the open->closed transition fetch retries until one succeeds.
+    marketWasOpen = marketOpen;
     Serial.printf("Loaded %d stock quotes\r\n", count);
   }
 }

@@ -74,3 +74,13 @@ bool usEasternInDst(const struct tm& u);
 // 09:30 and 16:00 US Eastern (DST-aware via usEasternInDst). Regular session
 // only — does not model exchange holidays. `now` is a UTC epoch.
 bool isMarketOpenAt(time_t now);
+
+// Whether the stock fetcher should hit the API on this tick. Fetches during
+// market hours, on `force` (config change), and on cold boot (`haveData` false).
+// Also fires exactly once on the open->closed transition (`marketWasOpen` true
+// while `marketOpen` is now false) so the price held overnight is the settled
+// close, not a quote from up to a fetch interval before 16:00. The caller must
+// remember `marketOpen` as the next call's `marketWasOpen`, updating it only on
+// a successful fetch so a failed close fetch retries.
+bool shouldFetchStocks(bool force, bool marketOpen, bool haveData,
+                       bool marketWasOpen);

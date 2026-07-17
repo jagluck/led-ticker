@@ -120,3 +120,11 @@ bool isMarketOpenAt(time_t now) {
   int minutes = et.tm_hour * 60 + et.tm_min;
   return minutes >= 9 * 60 + 30 && minutes < 16 * 60;
 }
+
+bool shouldFetchStocks(bool force, bool marketOpen, bool haveData,
+                       bool marketWasOpen) {
+  if (force) return true;         // config change / explicit refresh
+  if (!haveData) return true;     // cold boot: fetch even off-hours
+  if (marketOpen) return true;    // normal in-session refresh
+  return marketWasOpen;           // just closed: grab the settled close once
+}
