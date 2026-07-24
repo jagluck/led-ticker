@@ -23,8 +23,8 @@ They hand off through shared buffers protected by a mutex. Bluetooth writes neve
 ```mermaid
 graph TD
     subgraph Core0 ["Core 0 — network"]
-        A[Fetch task] -->|HTTP| B1[Finnhub stocks]
-        A -->|HTTP| B2[MET Norway weather]
+        A[Fetch task] -->|HTTP, first| B1[Finnhub stocks]
+        B1 -->|HTTP, then| B2[MET Norway weather]
         BLE[Bluetooth] -->|stash| Pend[Pending buffers]
     end
     subgraph Core1 ["Core 1 — display"]
