@@ -16,23 +16,27 @@ If it hasn't been configured yet (no WiFi or API key), it drops into a **setup**
 Network calls take seconds; the scrolling has to stay smooth. So the work is split across the ESP32's two cores:
 
 - **Core 0** fetches data over WiFi and runs the Bluetooth stack.
-- **Core 1** does everything you see — drives the matrix, runs the display modes, watches the button.
+- **Core 1** does everything you see — drives the matrix, runs the display modes, watches the button, and polls the USB serial console.
 
-They hand off through shared buffers protected by a mutex. Bluetooth writes never draw or touch the network directly: a callback just stashes the incoming value, and Core 1 picks it up and applies it on its next pass. That keeps the radio and the display from stepping on each other.
+They hand off through shared buffers protected by a mutex. Control writes never draw or touch the network directly: a Bluetooth callback (Core 0) or the serial console poll (Core 1) just stashes the incoming value, and the Core 1 loop picks it up and applies it on its next pass. That keeps the radio and the display from stepping on each other.
 
 ```mermaid
 graph TD
-    subgraph Core0 ["Core 0 — network"]
+    subgraph Core0 ["Core 0 — network, async"]
         A[Fetch task] -->|HTTP, first| B1[Finnhub stocks]
         B1 -->|HTTP, then| B2[MET Norway weather]
-        BLE[Bluetooth] -->|stash| Pend[Pending buffers]
+        BLE[Bluetooth callback] -->|stash| Pend[Pending buffers]
     end
-    subgraph Core1 ["Core 1 — display"]
-        Loop[main loop] -->|applies| Pend
-        Loop -->|draws| Disp[LED matrix]
-        Loop -->|polls| Btn[Boot button]
+    subgraph Core1 ["Core 1 — one loop pass, top to bottom"]
+        direction TB
+        Ser[Poll serial console] --> Apply[Apply pending]
+        Apply --> Btn[Poll boot button]
+        Btn --> Draw[Draw LED matrix]
+        Draw -.->|next pass| Ser
     end
-    B1 & B2 -->|guarded by mutex| Disp
+    Ser -->|stash| Pend
+    Pend -->|read| Apply
+    B1 & B2 -.->|guarded by mutex| Draw
 ```
 
 ## Display modes
