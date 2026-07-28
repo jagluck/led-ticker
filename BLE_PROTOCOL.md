@@ -33,7 +33,7 @@ UUID `...26aa` was once a "Messages" characteristic and is **not** registered in
 Comma-separated symbols. Example: `AAPL,MSFT,GOOGL`. Up to 10 symbols, 15 chars each.
 
 ### Mode
-A single category (`stocks`, `weather`, `clock`), `all`, `none`, or a comma-separated subset (e.g. `stocks,weather`). Persisted to NVS. The device round-robins through enabled categories. When `clock` is the *only* enabled category the display shows a steady 24-hour `HH:MM`; mixed with others it scrolls the same `HH:MM`.
+A single category (`stocks`, `weather`, `news`, `clock`), `all`, `none`, or a comma-separated subset (e.g. `stocks,weather`). Persisted to NVS. The device round-robins through enabled categories. When `clock` is the *only* enabled category the display shows a steady 24-hour `HH:MM`; mixed with others it scrolls the same `HH:MM`.
 
 `none` is sign-only mode: no ambient rotation; between signs the display sits on the dim bouncing-pixel idle state. Reads return `"none"`.
 
@@ -56,7 +56,7 @@ Pipe-separated `lat,lon,label` triplets — `47.61,-122.33,Seattle|47.67,-122.12
 
 ### Command
 Write-only.
-- `reload` — force an immediate stock + weather fetch.
+- `reload` — force an immediate stock + weather + news fetch.
 - `reset` — factory reset: wipe NVS and reboot. The wipe is deferred behind a 9-second single-digit countdown on the matrix (the BOOT-button hold shows the same digits) — **power-cycle the device during the countdown to abort**, since nothing is written until it finishes. Reverts to `config.h` defaults (clears WiFi, API key, any active sign, and the PIN — full reconfiguration needed after; a new PIN is generated and shown in setup mode). The connection drops when the device restarts; the write is ACKed first.
 - `pin-enforce on` / `pin-enforce off` — toggle the Auth PIN gate on writes. **On is the default** on a fresh flash.
 - `timer <minutes>` — countdown sign (1–99 whole minutes): live `MM:SS`, then a randomly-chosen end animation (fireworks / sonar pulse / sparkle), then ambient resumes. No cooldown — feels immediate, like a sign. Mutually exclusive with the text sign: each cancels the other. RAM-only and fire-and-forget — reads don't report timer state, so clients track the countdown locally.

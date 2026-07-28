@@ -1,0 +1,134 @@
+#ifndef NPR_FEED_H
+#define NPR_FEED_H
+
+// Hardcoded NPR News RSS feed for testing (snapshot from July 28, 2026)
+// In production, this would be fetched via HTTP from https://feeds.npr.org/1001/rss.xml
+static const char *NPR_RSS_FEED = R"(<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:npr="https://www.npr.org/rss/" xmlns:nprml="https://api.npr.org/nprml" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:media="http://search.yahoo.com/mrss/" version="2.0">
+<channel>
+<title>NPR Topics: News</title>
+<link>https://www.npr.org/templates/story/story.php?storyId=1001</link>
+<description>NPR news, audio, and podcasts. Coverage of breaking stories, national and world news, politics, business, science, technology, and extended coverage of major national and world events.</description>
+<language>en</language>
+<copyright>Copyright 2024 NPR - For Personal Use Only</copyright>
+<generator>Story API Shim 1.2.24</generator>
+<lastBuildDate>Tue, 28 Jul 2026 16:24:00 -0400</lastBuildDate>
+<image>
+<url>https://media.npr.org/images/podcasts/primary/npr_generic_image_300.jpg?s=200</url>
+<title>NPR Topics: News</title>
+<link>https://www.npr.org/sections/news/</link>
+</image>
+<item>
+<title>Ukraine negotiator: 'We have the upper hand'</title>
+<description>In an interview with NPR, one of Ukraine's top negotiators Sergiy Kyslytsya explains why Kyiv believes it now has the leverage to force Russia into serious negotiations.</description>
+<pubDate>Tue, 28 Jul 2026 16:10:18 -0400</pubDate>
+<link>https://www.npr.org/2026/07/28/g-s1-135640/ukraine-war-peace-negotiator-russia</link>
+<guid>https://www.npr.org/2026/07/28/g-s1-135640/ukraine-war-peace-negotiator-russia</guid>
+<content:encoded>
+<![CDATA[ <img src='https://npr.brightspotcdn.com/dims3/default/strip/false/crop/5906x4002+0+0/resize/5906x4002!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F57%2F88%2F3184b84e4df6b4e1fea733c9bcb4%2Fsergiy-kyslytsya001.jpg' alt='Sergiy Olehovych Kyslytsya is first deputy head of the Office of the President of Ukraine. He had previously served as permanent representative of Ukraine to the United Nations.'/><p>In an interview with NPR, one of Ukraine's top negotiators Sergiy Kyslytsya explains why Kyiv believes it now has the leverage to force Russia into serious negotiations.</p><p>(Image credit: Paula Bronstein for NPR)</p><img src='https://media.npr.org/include/images/tracking/npr-rss-pixel.png?story=g-s1-135640' /> ]]>
+</content:encoded>
+<dc:creator>Joanna Kakissis</dc:creator>
+</item>
+<item>
+<title>In a day of tributes, Lindsey Graham is remembered as a tireless Washington mainstay</title>
+<description>Lawmakers, foreign leaders and President Trump gathered Tuesday for the first of two days of funeral services for the late South Carolina Sen. Lindsey Graham.</description>
+<pubDate>Tue, 28 Jul 2026 13:08:29 -0400</pubDate>
+<link>https://www.npr.org/2026/07/28/nx-s1-5909232/lindsey-graham-funeral</link>
+<guid>https://www.npr.org/2026/07/28/nx-s1-5909232/lindsey-graham-funeral</guid>
+<content:encoded>
+<![CDATA[ <img src='https://npr.brightspotcdn.com/dims3/default/strip/false/crop/5739x3826+0+0/resize/5739x3826!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F22%2F79%2F6c20b6fb4664a72fbe6f19fdbc54%2Fgettyimages-2287364231.jpg' alt='A U.S. Capitol Police honor guard stands watch around the casket during a Congressional tribute to the late Sen. Lindsey Graham, R-S.C., in the Rotunda of the U.S. Capitol on Tuesday.'/><p>Lawmakers, foreign leaders and President Trump gathered Tuesday for the first of two days of funeral services for the late South Carolina Sen. Lindsey Graham.</p><p>(Image credit: Jim LoScalzo)</p><img src='https://media.npr.org/include/images/tracking/npr-rss-pixel.png?story=nx-s1-5909232' /> ]]>
+</content:encoded>
+<dc:creator>Claudia Grisales</dc:creator>
+</item>
+<item>
+<title>Photos: Spain and France battle record wildfires</title>
+<description>Hundreds of thousands of people have been forced from their homes as powerful wildfires sweep across Spain and France, revealing the growing scale of a climate crisis already reshaping the continent.</description>
+<pubDate>Tue, 28 Jul 2026 11:24:07 -0400</pubDate>
+<link>https://www.npr.org/2026/07/28/g-s1-135880/photos-spain-france-wildfires-climate-change</link>
+<guid>https://www.npr.org/2026/07/28/g-s1-135880/photos-spain-france-wildfires-climate-change</guid>
+<content:encoded>
+<![CDATA[ <img src='https://npr.brightspotcdn.com/dims3/default/strip/false/crop/8000x5333+0+0/resize/8000x5333!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F03%2F02%2Fd5be39d145f9b88fcbaad868d4a5%2Fgettyimages-2287339275.jpg' alt='This photograph shows the building of a painting company destroyed by a wildfire in a business park in Biscarrosse, southwestern France, on July 28, 2026.'/><p>Hundreds of thousands of people have been forced from their homes as powerful wildfires sweep across Spain and France, revealing the growing scale of a climate crisis already reshaping the continent.</p><p>(Image credit: Philippe Lopez)</p><img src='https://media.npr.org/include/images/tracking/npr-rss-pixel.png?story=g-s1-135880' /> ]]>
+</content:encoded>
+<dc:creator>NPR Staff</dc:creator>
+</item>
+<item>
+<title>'Ricochet' explores how the right to bear arms expands -- while gun laws contract</title>
+<description><em>The New York Times</em> reporter Mike McIntire says gun companies and the NRA are broadening the scope of the Second Amendment, socializing kids to appreciate guns and marketing a new brand of masculinity.</description>
+<pubDate>Tue, 28 Jul 2026 11:08:04 -0400</pubDate>
+<link>https://www.npr.org/2026/07/28/nx-s1-5910517/ricochet-explores-how-the-right-to-bear-arms-expands-while-gun-laws-contract</link>
+<guid>https://www.npr.org/2026/07/28/nx-s1-5910517/ricochet-explores-how-the-right-to-bear-arms-expands-while-gun-laws-contract</guid>
+<content:encoded>
+<![CDATA[ <p><em>The New York Times</em> reporter Mike McIntire says gun companies and the NRA are broadening the scope of the Second Amendment, socializing kids to appreciate guns and marketing a new brand of masculinity.</p><img src='https://media.npr.org/include/images/tracking/npr-rss-pixel.png?story=nx-s1-5910517' /> ]]>
+</content:encoded>
+<dc:creator>Terry Gross</dc:creator>
+</item>
+<item>
+<title>Here are the 13 books that made the Booker Prize longlist</title>
+<description>The 2026 list includes new works from household names Douglas Stuart, Marlon James and Elizabeth Strout as well as a few debut authors. </description>
+<pubDate>Tue, 28 Jul 2026 09:05:31 -0400</pubDate>
+<link>https://www.npr.org/2026/07/28/nx-s1-5874638/2026-booker-prize-longlist-fiction</link>
+<guid>https://www.npr.org/2026/07/28/nx-s1-5874638/2026-booker-prize-longlist-fiction</guid>
+<content:encoded>
+<![CDATA[ <img src='https://npr.brightspotcdn.com/dims3/default/strip/false/crop/2000x855+0+105/resize/2000x855!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F3d%2F10%2F3d2166f44f0e9c98be452ba74313%2F12-book-covers.jpg' alt='undefined'/><p>The 2026 list includes new works from household names Douglas Stuart, Marlon James and Elizabeth Strout as well as a few debut authors. </p><img src='https://media.npr.org/include/images/tracking/npr-rss-pixel.png?story=nx-s1-5874638' /> ]]>
+</content:encoded>
+<dc:creator>Meghan Collins Sullivan</dc:creator>
+</item>
+<item>
+<title>A 7.1 quake hits Japan's Kyushu, trapping people in a collapsed shopping mall</title>
+<description>The quake shook Japan's southern main island of Kyushu late Tuesday afternoon local time, causing damage and injuries.</description>
+<pubDate>Tue, 28 Jul 2026 08:51:33 -0400</pubDate>
+<link>https://www.npr.org/2026/07/28/nx-s1-5910498/japan-earthquake</link>
+<guid>https://www.npr.org/2026/07/28/nx-s1-5910498/japan-earthquake</guid>
+<content:encoded>
+<![CDATA[ <img src='https://npr.brightspotcdn.com/dims3/default/strip/false/crop/3968x2643+0+0/resize/3968x2643!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F63%2F53%2F7ee2ecf848a2bff94df61f5fc0e1%2Fap26209404916586.jpg' alt='This aerial image shows the damaged AEON shopping center following an earthquake in Kashima, Kumamoto prefecture, southern Japan, Tuesday.'/><p>The quake shook Japan's southern main island of Kyushu late Tuesday afternoon local time, causing damage and injuries.</p><p>(Image credit: Kyodo News via AP)</p><img src='https://media.npr.org/include/images/tracking/npr-rss-pixel.png?story=nx-s1-5910498' /> ]]>
+</content:encoded>
+<dc:creator>The Associated Press</dc:creator>
+</item>
+<item>
+<title>Trump to meet with Zelenskyy, Netanyahu. And, TPS holders could soon face deportation</title>
+<description>President Trump is set to hold separate meetings with Ukrainian leader Volodymyr Zelenskyy and Israeli Prime Minister Benjamin Netanyahu are today. And, Temporary Protected Status holders may face deportation soon.</description>
+<pubDate>Tue, 28 Jul 2026 07:26:09 -0400</pubDate>
+<link>https://www.npr.org/2026/07/28/g-s1-135845/up-first-newsletter-trump-zelenskyy-netanyahu-lindsey-graham-tps-political-corruption</link>
+<guid>https://www.npr.org/2026/07/28/g-s1-135845/up-first-newsletter-trump-zelenskyy-netanyahu-lindsey-graham-tps-political-corruption</guid>
+<content:encoded>
+<![CDATA[ <img src='undefined' alt='President Trump returns from a trip to Michigan on July 27, 2026, at Joint Base Andrews, Maryland.'/><p>President Trump is set to hold separate meetings with Ukrainian leader Volodymyr Zelenskyy and Israeli Prime Minister Benjamin Netanyahu are today. And, Temporary Protected Status holders may face deportation soon.</p><p>(Image credit: Andrew Harnik)</p><img src='https://media.npr.org/include/images/tracking/npr-rss-pixel.png?story=g-s1-135845' /> ]]>
+</content:encoded>
+<dc:creator>Brittney Melton</dc:creator>
+</item>
+<item>
+<title>AI tokens could become the kilowatt-hour of the AI age</title>
+<description>AI companies use tokens to track usage and bill customers. Now economists are using them to track the spread of AI through the economy.</description>
+<pubDate>Tue, 28 Jul 2026 06:30:00 -0400</pubDate>
+<link>https://www.npr.org/sections/planet-money/2026/07/28/g-s1-135475/ai-tokens-could-become-the-kilowatt-hour-of-the-ai-age</link>
+<guid>https://www.npr.org/sections/planet-money/2026/07/28/g-s1-135475/ai-tokens-could-become-the-kilowatt-hour-of-the-ai-age</guid>
+<content:encoded>
+<![CDATA[ <img src='https://npr.brightspotcdn.com/dims3/default/strip/false/crop/6240x4160+0+0/resize/6240x4160!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2Fec%2F18%2F694cedd9448aa43da30199307261%2Fgettyimages-2247736767.jpg' alt='undefined'/><p>AI companies use tokens to track usage and bill customers. Now economists are using them to track the spread of AI through the economy.</p><img src='https://media.npr.org/include/images/tracking/npr-rss-pixel.png?story=g-s1-135475' /> ]]>
+</content:encoded>
+<dc:creator>Greg Rosalsky</dc:creator>
+</item>
+<item>
+<title>Yes, it's possible to save money while paying off credit card debt. Here's how</title>
+<description>In fact, experts recommend it because it can keep you off the hamster wheel of debt. Here's how to find the money in your budget to put toward savings and credit card payments. </description>
+<pubDate>Tue, 28 Jul 2026 05:02:00 -0400</pubDate>
+<link>https://www.npr.org/2026/07/28/nx-s1-5866642/yes-its-possible-to-save-money-while-paying-off-credit-card-debt-heres-how</link>
+<guid>https://www.npr.org/2026/07/28/nx-s1-5866642/yes-its-possible-to-save-money-while-paying-off-credit-card-debt-heres-how</guid>
+<content:encoded>
+<![CDATA[ <img src='https://npr.brightspotcdn.com/dims3/default/strip/false/crop/5000x4000+0+0/resize/5000x4000!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2Ff1%2F46%2F5db00dfc4f25addb4d820d022baa%2F03-nprlk-0092-5000x4000.jpg' alt='To stay off the hamster wheel of debt, experts recommend saving for emergencies while keeping up with credit card payments. That way, you can pay for unexpected purchases with cash instead of credit.'/><p>In fact, experts recommend it because it can keep you off the hamster wheel of debt. Here's how to find the money in your budget to put toward savings and credit card payments. </p><p>(Image credit: Reina Takahashi for NPR)</p><img src='https://media.npr.org/include/images/tracking/npr-rss-pixel.png?story=nx-s1-5866642' /> ]]>
+</content:encoded>
+<dc:creator>Clare Marie Schneider</dc:creator>
+</item>
+<item>
+<title>Trump shattered ethics norms. Will voters trust Democrats to fix them?</title>
+<description>Democrats are making the case that now is the time to tackle anti-corruption reforms — to serve as a check on Donald Trump and to overhaul a system voters say is co-opted against their interests.</description>
+<pubDate>Tue, 28 Jul 2026 05:00:00 -0400</pubDate>
+<link>https://www.npr.org/2026/07/28/nx-s1-5869808/family-trump-profit-corruption-voters-ethics-democrats</link>
+<guid>https://www.npr.org/2026/07/28/nx-s1-5869808/family-trump-profit-corruption-voters-ethics-democrats</guid>
+<content:encoded>
+<![CDATA[ <img src='https://npr.brightspotcdn.com/dims3/default/strip/false/crop/4000x2668+0+0/resize/4000x2668!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2Ffa%2F28%2Faabb21854e73900d699abbb5d9ad%2Fgettyimages-2259830568.jpg' alt='Sen. Jon Ossoff, D-Ga., waves to attendees during a reelection campaign event in Atlanta on Feb. 7.'/><p>Democrats are making the case that now is the time to tackle anti-corruption reforms — to serve as a check on Donald Trump and to overhaul a system voters say is co-opted against their interests.</p><p>(Image credit: Dustin Chambers)</p><img src='https://media.npr.org/include/images/tracking/npr-rss-pixel.png?story=nx-s1-5869808' /> ]]>
+</content:encoded>
+<dc:creator>Eric McDaniel</dc:creator>
+</item>
+</channel>
+</rss>)";
+
+#endif // NPR_FEED_H

@@ -1,6 +1,6 @@
 # LED Ticker
 
-Desk sign + ambient ticker built on an ESP32-S3 and a 4-in-1 MAX7219 LED matrix. Rotates stocks, weather, and a clock; flips to a steady sign or a countdown timer on demand. Wi-Fi only feeds the live data; the sign and timer run fully offline.
+Desk sign + ambient ticker built on an ESP32-S3 and a 4-in-1 MAX7219 LED matrix. Rotates stocks, weather, news, and a clock; flips to a steady sign or a countdown timer on demand. Wi-Fi only feeds the live data; the sign and timer run fully offline.
 
 <p align="center">
   <picture>
@@ -12,7 +12,7 @@ Desk sign + ambient ticker built on an ESP32-S3 and a 4-in-1 MAX7219 LED matrix.
 ## Features
 
 - **Sign mode** — one-tap status text ("BUSY", "FOCUS", "DND") that overrides the ambient rotation, with an optional auto-clear timer. Or run a **countdown timer** (1–99 min): a live `MM:SS`, an end animation, then back to ambient.
-- **Live data** — stock quotes (Finnhub) and multi-location weather (MET Norway).
+- **Live data** — stock quotes (Finnhub), multi-location weather (MET Norway), and news.
 - **12-hour clock** — steady `HH:MM` when shown alone, scrolls `H:MM AM/PM` when mixed in.
 - **Display on/off** — blank the matrix and pause fetches without losing the saved ambient mode.
 - **Adjustable brightness & scroll speed** — set from the mobile app or CLI, applied live and persisted on the device.

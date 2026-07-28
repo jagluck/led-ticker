@@ -28,7 +28,7 @@ BRIGHTNESS_RANGE = range(0, 16)       # MAX7219 intensity
 SCROLL_MS_RANGE = range(20, 501)      # ms per scroll step (lower = faster)
 MAX_LOCATION_LEN = 48                 # firmware cap; one entry must be < this
 MAX_LOCATIONS_PAYLOAD = 245           # MAX_LOCATIONS * (MAX_LOCATION_LEN + 1)
-MODE_CATEGORIES = ("stocks", "weather", "clock")
+MODE_CATEGORIES = ("stocks", "weather", "news", "clock")
 
 
 @dataclass(frozen=True)

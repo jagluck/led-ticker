@@ -6,7 +6,7 @@ How the ESP32-S3 LED Ticker firmware works, at a high level. The detail lives in
 
 Drives a 4-panel LED matrix with two independent layers:
 
-- **Ambient rotation** — cycles through whatever's enabled: stock quotes, weather, and a clock.
+- **Ambient rotation** — cycles through whatever's enabled: stock quotes, weather, news, and a clock.
 - **Override** — a text sign or a countdown timer that takes over the whole panel until it clears, then ambient resumes.
 
 If it hasn't been configured yet (no WiFi or API key), it drops into a **setup** mode instead.
@@ -67,11 +67,11 @@ When several things want the screen at once, this is the priority order: a facto
 
 Configuration writes are PIN-gated. The PIN shows on the panel during setup and prints to serial at every boot.
 
-What's saved and what isn't: configuration (WiFi, keys, tickers, locations, brightness, timezone, PIN) persists in flash. Fetched quotes/weather and the active sign are **RAM-only** — a power cycle throws them away and comes back to a clean ambient rotation.
+What's saved and what isn't: configuration (WiFi, keys, tickers, locations, brightness, timezone, PIN) persists in flash. Fetched quotes/weather/news and the active sign are **RAM-only** — a power cycle throws them away and comes back to a clean ambient rotation.
 
 ## Where the data comes from
 
-Every few minutes Core 0 refreshes stock quotes (Finnhub) and weather (MET Norway), and the clock syncs from NTP. A couple of things worth knowing:
+Every few minutes Core 0 refreshes stock quotes (Finnhub), weather (MET Norway), and news, and the clock syncs from NTP. A couple of things worth knowing:
 
 - Stocks only fetch during US market hours; off-hours it keeps showing the last prices.
 - The device doesn't look up locations itself — the app resolves a place name to coordinates and sends those, so the firmware stays simple and keyless for weather.

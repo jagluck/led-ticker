@@ -26,6 +26,8 @@ uint8_t parseModePayload(const char* in) {
       mask |= BIT_STOCKS;
     else if (strcmp(tok, "weather") == 0)
       mask |= BIT_WEATHER;
+    else if (strcmp(tok, "news") == 0)
+      mask |= BIT_NEWS;
     else if (strcmp(tok, "clock") == 0)
       mask |= BIT_CLOCK;
     else
@@ -37,7 +39,8 @@ uint8_t parseModePayload(const char* in) {
 
 uint8_t nextBit(uint8_t b) {
   if (b == BIT_STOCKS) return BIT_WEATHER;
-  if (b == BIT_WEATHER) return BIT_CLOCK;
+  if (b == BIT_WEATHER) return BIT_NEWS;
+  if (b == BIT_NEWS) return BIT_CLOCK;
   return BIT_STOCKS;
 }
 
@@ -53,6 +56,10 @@ int formatModeName(char* buf, size_t bufLen, uint8_t enabledMask, bool isSetup) 
   }
   if (enabledMask & BIT_WEATHER) {
     len += snprintf(buf + len, bufLen - len, "%sweather", sep);
+    sep = ",";
+  }
+  if (enabledMask & BIT_NEWS) {
+    len += snprintf(buf + len, bufLen - len, "%snews", sep);
     sep = ",";
   }
   if (enabledMask & BIT_CLOCK) {

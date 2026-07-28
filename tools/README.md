@@ -84,7 +84,7 @@ led status clear
 led timer 10              # 10-minute countdown
 led timer cancel
 
-# Ambient mode (subset of stocks/weather/clock, 'all', or 'none' for sign-only)
+# Ambient mode (subset of stocks/weather/news/clock, 'all', or 'none' for sign-only)
 led mode stocks weather
 led mode clock
 led mode all
@@ -122,7 +122,7 @@ led pin-enforce on        # device: require PIN for writes (default after a fres
 led pin-enforce off       # device: stop requiring PIN (escape hatch)
 
 # Maintenance
-led reload                # force stock refresh
+led reload                # force stock/weather/news refresh
 led reset                 # wipe NVS, rotate PIN, revert to config.h defaults
 ```
 
