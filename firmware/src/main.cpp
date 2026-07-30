@@ -884,26 +884,26 @@ static void fetchNewsImpl(bool force)
   int count = 0;
 
   // === PRODUCTION: Fetch live RSS feed from NPR (currently commented out) ===
-  // if (WiFi.status() != WL_CONNECTED) return;
-  //
-  // HTTPClient http;
-  // http.setConnectTimeout(5000);
-  // http.setTimeout(5000);
-  //
-  // http.begin("https://feeds.npr.org/1001/rss.xml");
-  // int code = http.GET();
-  // if (code != 200) {
-  //   Serial.printf("RSS HTTP error: %d\r\n", code);
-  //   http.end();
-  //   return;
-  // }
-  //
-  // String rssContent = http.getString();
-  // http.end();
-  // const char *rssData = rssContent.c_str();
+  if (WiFi.status() != WL_CONNECTED) return;
+  
+  HTTPClient http;
+  http.setConnectTimeout(5000);
+  http.setTimeout(5000);
+  
+  http.begin("https://feeds.npr.org/1001/rss.xml");
+  int code = http.GET();
+  if (code != 200) {
+    Serial.printf("RSS HTTP error: %d\r\n", code);
+    http.end();
+    return;
+  }
+  
+  String rssContent = http.getString();
+  http.end();
+  const char *rssData = rssContent.c_str();
 
   // === TEST HARDCODED: Use npr_feed.h ===
-  const char *rssData = NPR_RSS_FEED;
+  // const char *rssData = NPR_RSS_FEED;
 
   // === RSS PARSER: Works with either source ===
   // Find <item> then <title>...</title> handling whitespace
@@ -3052,7 +3052,7 @@ void setup()
   Serial.begin(115200);
   // USB-CDC default is a 250 ms blocking write timeout — headless, every
   // print would stall the loop (visible matrix stutter). 0 = drop bytes.
-  Serial.setTxTimeoutMs(0);
+  Serial.setRxTimeout(0);
   // Wait up to 2 s for USB enumeration so the boot banner lands in the
   // monitor; falls through so a headless boot isn't wedged.
   unsigned long serialWaitStart = millis();
