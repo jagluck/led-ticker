@@ -322,6 +322,7 @@ void loadTickersFromNVS()
 // ============================================================================
 
 #define MAX_LOCATIONS 5
+#define MAX_NEWS 20
 // MAX_LOCATION_LEN, MAX_LOC_NAME_LEN, the ResolvedLocation struct, and
 // parseLocation() live in logic.h/.cpp (host-tested).
 
@@ -359,9 +360,11 @@ struct NewsReading
   char text[MAX_NEWS_LEN];
 };
 
-NewsReading newsReadings[MAX_LOCATIONS];
+NewsReading newsReadings[MAX_NEWS];
 int newsCount = 0;
 int currentNews = 0;
+static bool awaitingNewsPause = false;
+static uint32_t newsPauseEnd = 0;
 
 void saveLocationsToNVS()
 {
@@ -564,13 +567,13 @@ void initDisplay()
 // copy, so it must outlive the scroll; a self-copy (callers passing scrollBuf)
 // is safe since dst and src index in lockstep. Only ASCII a-z folds — the
 // degree symbol and arrows (high-bit bytes) pass through untouched.
-void scrollTextAt(const char *msg, uint16_t speedMs)
+void scrollTextAt(const char *msg, uint16_t speedMs, bool preserveCase = false)
 {
   size_t i = 0;
   for (; msg[i] && i < sizeof(scrollBuf) - 1; i++)
   {
     char c = msg[i];
-    scrollBuf[i] = (c >= 'a' && c <= 'z') ? c - 'a' + 'A' : c;
+    scrollBuf[i] = (!preserveCase && c >= 'a' && c <= 'z') ? c - 'a' + 'A' : c;
   }
   scrollBuf[i] = '\0';
   useScrollFont();
@@ -873,6 +876,32 @@ static void fetchWeatherImpl(bool force)
   }
 }
 
+static void decodeHtmlEntities(char *s)
+{
+  static const struct { const char *entity; size_t len; char ch; } kEntities[] = {
+    { "&apos;", sizeof("&apos;") - 1, '\'' },
+    { "&quot;", sizeof("&quot;") - 1, '"'  },
+    { "&amp;",  sizeof("&amp;")  - 1, '&'  },
+    { "&lt;",   sizeof("&lt;")   - 1, '<'  },
+    { "&gt;",   sizeof("&gt;")   - 1, '>'  },
+    { "&#39;",  sizeof("&#39;")  - 1, '\'' },
+  };
+  char *w = s;
+  for (const char *r = s; *r; ) {
+    bool matched = false;
+    for (auto &e : kEntities) {
+      if (strncmp(r, e.entity, e.len) == 0) {
+        *w++ = e.ch;
+        r += e.len;
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) *w++ = *r++;
+  }
+  *w = '\0';
+}
+
 static void fetchNewsImpl(bool force)
 {
   static unsigned long lastNewsFetchMs = 0;
@@ -880,7 +909,7 @@ static void fetchNewsImpl(bool force)
     return;
   lastNewsFetchMs = millis();
 
-  NewsReading tmp[MAX_LOCATIONS];
+  NewsReading tmp[MAX_NEWS];
   int count = 0;
 
   // === PRODUCTION: Fetch live RSS feed from NPR (currently commented out) ===
@@ -908,7 +937,7 @@ static void fetchNewsImpl(bool force)
   // === RSS PARSER: Works with either source ===
   // Find <item> then <title>...</title> handling whitespace
   const char *pos = rssData;
-  while (count < MAX_LOCATIONS && (pos = strstr(pos, "<item>")) != nullptr)
+  while (count < MAX_NEWS && (pos = strstr(pos, "<item>")) != nullptr)
   {
     pos += 6; // skip "<item>"
 
@@ -932,9 +961,10 @@ static void fetchNewsImpl(bool force)
 
     strncpy(tmp[count].text, titleStart, len);
     tmp[count].text[len] = '\0';
+    decodeHtmlEntities(tmp[count].text);
 
-    count++;
     pos = titleEnd;
+    count++;
   }
 
   if (count > 0)
@@ -1064,8 +1094,8 @@ void showNextNews()
   currentNews = (currentNews + 1) % newsCount;
   xSemaphoreGive(dataMutex);
 
-  snprintf(scrollBuf, sizeof(scrollBuf), "%s %s", n.name, n.text);
-  scrollText(scrollBuf);
+  snprintf(scrollBuf, sizeof(scrollBuf), "*  %s  *", n.text);
+  scrollTextAt(scrollBuf, scrollSpeedMs, true);
 }
 
 // 24-hour HH:MM. Used by the scrolling rotation when BIT_CLOCK shares the mask
@@ -3050,9 +3080,6 @@ static void enterBootMode()
 void setup()
 {
   Serial.begin(115200);
-  // USB-CDC default is a 250 ms blocking write timeout — headless, every
-  // print would stall the loop (visible matrix stutter). 0 = drop bytes.
-  Serial.setRxTimeout(0);
   // Wait up to 2 s for USB enumeration so the boot banner lands in the
   // monitor; falls through so a headless boot isn't wedged.
   unsigned long serialWaitStart = millis();
@@ -3404,10 +3431,28 @@ static void renderActiveFrame()
   {
     tickStaticClock();
   }
+  else if (awaitingNewsPause)
+  {
+    if (millis() >= newsPauseEnd)
+    {
+      awaitingNewsPause = false;
+      display.displayReset();
+      showNext();
+    }
+  }
   else if (display.displayAnimate())
   {
-    display.displayReset();
-    showNext();
+    if (currentBit == BIT_NEWS && newsCount > 0)
+    {
+      display.displayClear();
+      awaitingNewsPause = true;
+      newsPauseEnd = millis() + NEWS_PAUSE_MS;
+    }
+    else
+    {
+      display.displayReset();
+      showNext();
+    }
   }
 }
 

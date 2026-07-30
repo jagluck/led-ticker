@@ -36,7 +36,7 @@ const int defaultLocationCount =
 // --- Display behavior ---
 // SCROLL_SPEED and DISPLAY_INTENSITY are fresh-flash defaults only — both
 // are BLE-settable (Display characteristic) and persisted to NVS.
-#define SCROLL_SPEED 70  // ms per scroll step (lower = faster)
+#define SCROLL_SPEED 20  // ms per scroll step (lower = faster)
 // Slower setup-mode scroll so the device name + PIN are readable while
 // pairing. Not user-settable.
 #define SETUP_SCROLL_SPEED 100
@@ -68,6 +68,8 @@ const int defaultLocationCount =
 // no per-fleet obligation. Google primary smears leap seconds (no 23:59:60).
 #define NTP_SERVER_1 "time.google.com"
 #define NTP_SERVER_2 "time.cloudflare.com"
+
+#define NEWS_PAUSE_MS 3000
 
 // How often loop() triggers a stocks+weather fetch (5 minutes by default).
 #define FETCH_INTERVAL_MS (5 * 60 * 1000)
