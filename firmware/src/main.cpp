@@ -16,7 +16,6 @@
 #include "logic.h"
 #include "pressstart_font.h"
 #include "version.h"
-#include "npr_feed.h"
 
 // ============================================================================
 // File map — read setup() and loop() (bottom, under "Main") first; they are the
@@ -921,27 +920,24 @@ static void fetchNewsImpl(bool force)
   NewsReading tmp[MAX_NEWS];
   int count = 0;
 
-  // === PRODUCTION: Fetch live RSS feed from NPR (currently commented out) ===
-  // if (WiFi.status() != WL_CONNECTED) return;
+  // Fetch live RSS feed from NPR 
+  if (WiFi.status() != WL_CONNECTED) return;
 
-  // HTTPClient http;
-  // http.setConnectTimeout(5000);
-  // http.setTimeout(5000);
+  HTTPClient http;
+  http.setConnectTimeout(5000);
+  http.setTimeout(5000);
 
-  // http.begin("https://feeds.npr.org/1001/rss.xml");
-  // int code = http.GET();
-  // if (code != 200) {
-  //   Serial.printf("RSS HTTP error: %d\r\n", code);
-  //   http.end();
-  //   return;
-  // }
+  http.begin("https://feeds.npr.org/1001/rss.xml");
+  int code = http.GET();
+  if (code != 200) {
+    Serial.printf("RSS HTTP error: %d\r\n", code);
+    http.end();
+    return;
+  }
 
-  // String rssContent = http.getString();
-  // http.end();
-  // const char *rssData = rssContent.c_str();
-
-  // === TEST HARDCODED: Use npr_feed.h ===
-  const char *rssData = NPR_RSS_FEED;
+  String rssContent = http.getString();
+  http.end();
+  const char *rssData = rssContent.c_str();
 
   // === RSS PARSER: Works with either source ===
   // Find <item> then <title>...</title> handling whitespace
