@@ -878,26 +878,35 @@ static void fetchWeatherImpl(bool force)
 
 static void decodeHtmlEntities(char *s)
 {
-  static const struct { const char *entity; size_t len; char ch; } kEntities[] = {
-    { "&apos;", sizeof("&apos;") - 1, '\'' },
-    { "&quot;", sizeof("&quot;") - 1, '"'  },
-    { "&amp;",  sizeof("&amp;")  - 1, '&'  },
-    { "&lt;",   sizeof("&lt;")   - 1, '<'  },
-    { "&gt;",   sizeof("&gt;")   - 1, '>'  },
-    { "&#39;",  sizeof("&#39;")  - 1, '\'' },
+  static const struct
+  {
+    const char *entity;
+    size_t len;
+    char ch;
+  } kEntities[] = {
+      {"&apos;", sizeof("&apos;") - 1, '\''},
+      {"&quot;", sizeof("&quot;") - 1, '"'},
+      {"&amp;", sizeof("&amp;") - 1, '&'},
+      {"&lt;", sizeof("&lt;") - 1, '<'},
+      {"&gt;", sizeof("&gt;") - 1, '>'},
+      {"&#39;", sizeof("&#39;") - 1, '\''},
   };
   char *w = s;
-  for (const char *r = s; *r; ) {
+  for (const char *r = s; *r;)
+  {
     bool matched = false;
-    for (auto &e : kEntities) {
-      if (strncmp(r, e.entity, e.len) == 0) {
+    for (auto &e : kEntities)
+    {
+      if (strncmp(r, e.entity, e.len) == 0)
+      {
         *w++ = e.ch;
         r += e.len;
         matched = true;
         break;
       }
     }
-    if (!matched) *w++ = *r++;
+    if (!matched)
+      *w++ = *r++;
   }
   *w = '\0';
 }
@@ -913,26 +922,26 @@ static void fetchNewsImpl(bool force)
   int count = 0;
 
   // === PRODUCTION: Fetch live RSS feed from NPR (currently commented out) ===
-  if (WiFi.status() != WL_CONNECTED) return;
-  
-  HTTPClient http;
-  http.setConnectTimeout(5000);
-  http.setTimeout(5000);
-  
-  http.begin("https://feeds.npr.org/1001/rss.xml");
-  int code = http.GET();
-  if (code != 200) {
-    Serial.printf("RSS HTTP error: %d\r\n", code);
-    http.end();
-    return;
-  }
-  
-  String rssContent = http.getString();
-  http.end();
-  const char *rssData = rssContent.c_str();
+  // if (WiFi.status() != WL_CONNECTED) return;
+
+  // HTTPClient http;
+  // http.setConnectTimeout(5000);
+  // http.setTimeout(5000);
+
+  // http.begin("https://feeds.npr.org/1001/rss.xml");
+  // int code = http.GET();
+  // if (code != 200) {
+  //   Serial.printf("RSS HTTP error: %d\r\n", code);
+  //   http.end();
+  //   return;
+  // }
+
+  // String rssContent = http.getString();
+  // http.end();
+  // const char *rssData = rssContent.c_str();
 
   // === TEST HARDCODED: Use npr_feed.h ===
-  // const char *rssData = NPR_RSS_FEED;
+  const char *rssData = NPR_RSS_FEED;
 
   // === RSS PARSER: Works with either source ===
   // Find <item> then <title>...</title> handling whitespace

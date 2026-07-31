@@ -23,8 +23,8 @@ const int defaultLocationCount =
 
 #define HARDWARE_TYPE MD_MAX72XX::FC16_HW  // real DIYables 4-in-1 panel
 #define MAX_DEVICES 4
-#define DIN_PIN 23  // MOSI
-#define CLK_PIN 18  // SCK
+#define DIN_PIN 6  // MOSI USE 23 FOR esp32dev
+#define CLK_PIN 4  // SCK USE 18 FOR esp32dev
 #define CS_PIN 5
 #define RGB_LED_PIN 48  // Freenove onboard WS2812
 // Factory-reset button. BOOT button on most ESP32-S3 devkits is GPIO 0.
@@ -36,7 +36,7 @@ const int defaultLocationCount =
 // --- Display behavior ---
 // SCROLL_SPEED and DISPLAY_INTENSITY are fresh-flash defaults only — both
 // are BLE-settable (Display characteristic) and persisted to NVS.
-#define SCROLL_SPEED 20  // ms per scroll step (lower = faster)
+#define SCROLL_SPEED 70  // ms per scroll step (lower = faster)
 // Slower setup-mode scroll so the device name + PIN are readable while
 // pairing. Not user-settable.
 #define SETUP_SCROLL_SPEED 100
