@@ -46,8 +46,7 @@
 // via `& MASK_ALL` on load. When BIT_CLOCK is the only enabled bit, the
 // display switches to a steady non-scrolling clock — see tickStaticClock().
 
-enum
-{
+enum {
   MODE_CONTENT,
   MODE_SETUP,
   MODE_IDLE,
@@ -97,12 +96,10 @@ Preferences prefs;
 // or out of range, and returns the resulting count.
 
 static void saveStringListToNVS(const char *ns, const char *keyPrefix,
-                                const char *list, int entryLen, int count)
-{
+                                const char *list, int entryLen, int count) {
   prefs.begin(ns, false);
   prefs.putInt("count", count);
-  for (int i = 0; i < count; i++)
-  {
+  for (int i = 0; i < count; i++) {
     char key[8];
     snprintf(key, sizeof(key), "%s%d", keyPrefix, i);
     prefs.putString(key, list + i * entryLen);
@@ -113,14 +110,11 @@ static void saveStringListToNVS(const char *ns, const char *keyPrefix,
 static int loadStringListFromNVS(const char *ns, const char *keyPrefix,
                                  char *list, int entryLen, int maxCount,
                                  const char *const *defaults, int defaultCount,
-                                 const char *what)
-{
+                                 const char *what) {
   prefs.begin(ns, true);
   int count = prefs.getInt("count", 0);
-  if (count > 0 && count <= maxCount)
-  {
-    for (int i = 0; i < count; i++)
-    {
+  if (count > 0 && count <= maxCount) {
+    for (int i = 0; i < count; i++) {
       char key[8];
       snprintf(key, sizeof(key), "%s%d", keyPrefix, i);
       prefs.getString(key, list + i * entryLen, entryLen);
@@ -131,8 +125,7 @@ static int loadStringListFromNVS(const char *ns, const char *keyPrefix,
   }
   prefs.end();
   int seeded = defaultCount < maxCount ? defaultCount : maxCount;
-  for (int i = 0; i < seeded; i++)
-  {
+  for (int i = 0; i < seeded; i++) {
     strncpy(list + i * entryLen, defaults[i], entryLen - 1);
     list[(i + 1) * entryLen - 1] = '\0';
   }
@@ -151,26 +144,22 @@ static int loadStringListFromNVS(const char *ns, const char *keyPrefix,
 char nvsWifiSsid[WIFI_SSID_MAX];
 char nvsWifiPass[WIFI_PASS_MAX];
 
-void saveWifiToNVS()
-{
+void saveWifiToNVS() {
   prefs.begin("wifi", false);
   prefs.putString("ssid", nvsWifiSsid);
   prefs.putString("pass", nvsWifiPass);
   prefs.end();
 }
 
-void loadWifiFromNVS()
-{
+void loadWifiFromNVS() {
   prefs.begin("wifi", true);
   bool hasSsid = prefs.isKey("ssid");
-  if (hasSsid)
-  {
+  if (hasSsid) {
     prefs.getString("ssid", nvsWifiSsid, WIFI_SSID_MAX);
     prefs.getString("pass", nvsWifiPass, WIFI_PASS_MAX);
     Serial.printf("Loaded WiFi credentials from NVS (SSID: %s)\r\n", nvsWifiSsid);
   }
-  else
-  {
+  else {
     nvsWifiSsid[0] = '\0';
     nvsWifiPass[0] = '\0';
     Serial.println("WiFi not configured — use BLE to set credentials");
@@ -188,24 +177,20 @@ bool wifiConfigured() { return nvsWifiSsid[0] != '\0'; }
 
 char nvsApiKey[MAX_APIKEY_LEN];
 
-void saveApiKeyToNVS()
-{
+void saveApiKeyToNVS() {
   prefs.begin("apikey", false);
   prefs.putString("key", nvsApiKey);
   prefs.end();
 }
 
-void loadApiKeyFromNVS()
-{
+void loadApiKeyFromNVS() {
   prefs.begin("apikey", true);
   bool hasKey = prefs.isKey("key");
-  if (hasKey)
-  {
+  if (hasKey) {
     prefs.getString("key", nvsApiKey, MAX_APIKEY_LEN);
     Serial.println("Loaded API key from NVS");
   }
-  else
-  {
+  else {
     nvsApiKey[0] = '\0';
     Serial.println("Finnhub API key not configured — use BLE to set it");
   }
@@ -226,8 +211,7 @@ bool apiKeyConfigured() { return nvsApiKey[0] != '\0'; }
 char nvsPin[PIN_LEN + 1] = {0};
 bool nvsPinEnforce = true;
 
-void savePinToNVS()
-{
+void savePinToNVS() {
   prefs.begin("pin", false);
   prefs.putString("code", nvsPin);
   prefs.putBool("on", nvsPinEnforce);
@@ -236,27 +220,23 @@ void savePinToNVS()
 
 // Persist only the enforce flag — used by `pin-enforce on/off` so toggling
 // the gate doesn't rewrite the unchanged 6-byte PIN string back to flash.
-void savePinEnforceToNVS()
-{
+void savePinEnforceToNVS() {
   prefs.begin("pin", false);
   prefs.putBool("on", nvsPinEnforce);
   prefs.end();
 }
 
-static void generateAndSavePin()
-{
+static void generateAndSavePin() {
   uint32_t n = esp_random() % 1000000UL;
   snprintf(nvsPin, sizeof(nvsPin), "%06lu", (unsigned long)n);
   savePinToNVS();
   Serial.printf("Generated new BLE auth PIN: %s\r\n", nvsPin);
 }
 
-void loadPinFromNVS()
-{
+void loadPinFromNVS() {
   prefs.begin("pin", true);
   bool hasCode = prefs.isKey("code");
-  if (hasCode)
-  {
+  if (hasCode) {
     prefs.getString("code", nvsPin, sizeof(nvsPin));
     // Default to enforcing if the "on" key was never written (e.g. namespace
     // existed from an earlier build that only stored "code").
@@ -264,8 +244,7 @@ void loadPinFromNVS()
     Serial.printf("Loaded BLE auth PIN from NVS: %s (enforce=%d)\r\n", nvsPin,
                   nvsPinEnforce);
   }
-  else
-  {
+  else {
     nvsPin[0] = '\0';
     nvsPinEnforce = true;
   }
@@ -275,8 +254,7 @@ void loadPinFromNVS()
 // Separate from loadPinFromNVS so callers can defer until after initBLE():
 // esp_random() has no HW entropy until the RF subsystem is up, and a PIN
 // generated before that is predictable.
-void ensurePinExists()
-{
+void ensurePinExists() {
   if (nvsPin[0])
     return;
   generateAndSavePin();
@@ -292,8 +270,7 @@ void ensurePinExists()
 char nvsTickers[MAX_STOCKS][MAX_TICKER_LEN];
 int nvsTickerCount = 0;
 
-struct StockQuote
-{
+struct StockQuote {
   char symbol[MAX_TICKER_LEN];
   float price;
   float changePct;
@@ -303,14 +280,12 @@ StockQuote stockQuotes[MAX_STOCKS];
 int stockCount = 0;
 int currentStock = 0;
 
-void saveTickersToNVS()
-{
+void saveTickersToNVS() {
   saveStringListToNVS("tickers", "t", &nvsTickers[0][0], MAX_TICKER_LEN,
                       nvsTickerCount);
 }
 
-void loadTickersFromNVS()
-{
+void loadTickersFromNVS() {
   nvsTickerCount = loadStringListFromNVS(
       "tickers", "t", &nvsTickers[0][0], MAX_TICKER_LEN, MAX_STOCKS,
       stockTickers, stockTickerCount, "tickers");
@@ -332,18 +307,15 @@ ResolvedLocation resolved[MAX_LOCATIONS];
 
 // Re-derives resolved[] from the stored location strings. Call after locations
 // load or change — cheap, no network.
-static void reparseLocations()
-{
-  for (int i = 0; i < MAX_LOCATIONS; i++)
-  {
+static void reparseLocations() {
+  for (int i = 0; i < MAX_LOCATIONS; i++) {
     resolved[i].ok = false;
     if (i < nvsLocationCount)
       parseLocation(nvsLocations[i], resolved[i]);
   }
 }
 
-struct WeatherReading
-{
+struct WeatherReading {
   char name[MAX_LOC_NAME_LEN];
   float tempF;
 };
@@ -353,8 +325,7 @@ int weatherCount = 0;
 int currentWeather = 0;
 
 #define MAX_NEWS_LEN 96
-struct NewsReading
-{
+struct NewsReading {
   char name[MAX_LOC_NAME_LEN];
   char text[MAX_NEWS_LEN];
 };
@@ -365,14 +336,12 @@ int currentNews = 0;
 static bool awaitingNewsPause = false;
 static uint32_t newsPauseEnd = 0;
 
-void saveLocationsToNVS()
-{
+void saveLocationsToNVS() {
   saveStringListToNVS("locs", "l", &nvsLocations[0][0], MAX_LOCATION_LEN,
                       nvsLocationCount);
 }
 
-void loadLocationsFromNVS()
-{
+void loadLocationsFromNVS() {
   nvsLocationCount = loadStringListFromNVS(
       "locs", "l", &nvsLocations[0][0], MAX_LOCATION_LEN, MAX_LOCATIONS,
       defaultLocations, defaultLocationCount, "locations");
@@ -385,18 +354,15 @@ void loadLocationsFromNVS()
 
 uint8_t enabledMask = MASK_ALL;
 
-void saveDisplayMaskToNVS()
-{
+void saveDisplayMaskToNVS() {
   prefs.begin("display", false);
   prefs.putUChar("mask", enabledMask);
   prefs.end();
 }
 
-void loadDisplayMaskFromNVS()
-{
+void loadDisplayMaskFromNVS() {
   prefs.begin("display", true);
-  if (prefs.isKey("mask"))
-  {
+  if (prefs.isKey("mask")) {
     // mask=0 is now a valid persisted value ("none" mode — sign-only with
     // idle pixel between signs), so don't fall back to MASK_ALL here.
     enabledMask = prefs.getUChar("mask", MASK_ALL) & MASK_ALL;
@@ -414,16 +380,14 @@ void loadDisplayMaskFromNVS()
 uint8_t displayBrightness = DISPLAY_INTENSITY;
 uint16_t scrollSpeedMs = SCROLL_SPEED;
 
-void saveDisplaySettingsToNVS()
-{
+void saveDisplaySettingsToNVS() {
   prefs.begin("display", false);
   prefs.putUChar("bright", displayBrightness);
   prefs.putUShort("scroll", scrollSpeedMs);
   prefs.end();
 }
 
-void loadDisplaySettingsFromNVS()
-{
+void loadDisplaySettingsFromNVS() {
   prefs.begin("display", true);
   displayBrightness = prefs.getUChar("bright", DISPLAY_INTENSITY);
   scrollSpeedMs = prefs.getUShort("scroll", SCROLL_SPEED);
@@ -443,18 +407,15 @@ void loadDisplaySettingsFromNVS()
 
 char nvsTimezone[MAX_TZ_LEN] = TIMEZONE;
 
-void saveTimezoneToNVS()
-{
+void saveTimezoneToNVS() {
   prefs.begin("time", false);
   prefs.putString("tz", nvsTimezone);
   prefs.end();
 }
 
-void loadTimezoneFromNVS()
-{
+void loadTimezoneFromNVS() {
   prefs.begin("time", true);
-  if (prefs.isKey("tz"))
-  {
+  if (prefs.isKey("tz")) {
     prefs.getString("tz", nvsTimezone, MAX_TZ_LEN);
   }
   prefs.end();
@@ -490,8 +451,7 @@ uint8_t setupTargetMask = MASK_ALL;
 char activeStatusText[STATUS_MAX_LEN] = {0};
 uint32_t statusExpiresAt = 0;
 
-void clearStatus()
-{
+void clearStatus() {
   activeStatusText[0] = '\0';
   statusExpiresAt = 0;
 }
@@ -527,27 +487,23 @@ static char scrollBuf[MAX_STRING_LEN + 1];
 // font-select verb has something to switch to; staticFace is the single point
 // it would flip (read an NVS key, reassign, re-parse). Today it's a constant.
 static const MD_MAX72XX::fontType_t *staticFace = PRESSSTART_FONT;
-static void useStaticFont()
-{
+static void useStaticFont() {
   display.setFont(const_cast<MD_MAX72XX::fontType_t *>(staticFace));
 }
-static void useScrollFont()
-{
+static void useScrollFont() {
   display.setFont(nullptr); // built-in system font
 }
 
 // Steady clock/timer render. The static face's condensed digits fit a five-glyph
 // time on the panel. The caller clears first if it needs to (the clock does; the
 // timer overwrites in place).
-static void renderSteadyNumber(const char *buf)
-{
+static void renderSteadyNumber(const char *buf) {
   useStaticFont();
   display.displayText(buf, PA_CENTER, 0, 0, PA_PRINT, PA_NO_EFFECT);
   display.displayAnimate();
 }
 
-void initDisplay()
-{
+void initDisplay() {
   SPI.begin(CLK_PIN, -1, DIN_PIN, CS_PIN);
   display.begin();
   useStaticFont(); // a face must be set before first render; call sites reassert
@@ -566,11 +522,9 @@ void initDisplay()
 // copy, so it must outlive the scroll; a self-copy (callers passing scrollBuf)
 // is safe since dst and src index in lockstep. Only ASCII a-z folds — the
 // degree symbol and arrows (high-bit bytes) pass through untouched.
-void scrollTextAt(const char *msg, uint16_t speedMs, bool preserveCase = false)
-{
+void scrollTextAt(const char *msg, uint16_t speedMs, bool preserveCase = false) {
   size_t i = 0;
-  for (; msg[i] && i < sizeof(scrollBuf) - 1; i++)
-  {
+  for (; msg[i] && i < sizeof(scrollBuf) - 1; i++) {
     char c = msg[i];
     scrollBuf[i] = (!preserveCase && c >= 'a' && c <= 'z') ? c - 'a' + 'A' : c;
   }
@@ -594,24 +548,19 @@ static bool ledState = false;
 // further down. Lives up here so updateStatusLed() (just below) can read it.
 static bool displayOff = false;
 
-void updateStatusLed()
-{
-  if (displayOff)
-  {
-    if (ledState)
-    {
+void updateStatusLed() {
+  if (displayOff) {
+    if (ledState) {
       neopixelWrite(RGB_LED_PIN, 0, 0, 0);
       ledState = false;
     }
     return;
   }
-  if (fetching && !ledState)
-  {
+  if (fetching && !ledState) {
     neopixelWrite(RGB_LED_PIN, 0, 0, 20);
     ledState = true;
   }
-  else if (!fetching && ledState)
-  {
+  else if (!fetching && ledState) {
     neopixelWrite(RGB_LED_PIN, 0, 0, 0);
     ledState = false;
   }
@@ -623,12 +572,10 @@ void updateStatusLed()
 
 bool timeReady = false;
 
-void initTime()
-{
+void initTime() {
   // SNTP without WiFi wedges the device on this Arduino core (failed DNS
   // retries accumulate) — the "fresh-boot freeze after tens of minutes" bug.
-  if (WiFi.status() != WL_CONNECTED)
-  {
+  if (WiFi.status() != WL_CONNECTED) {
     Serial.println("Skipping NTP init — WiFi not connected");
     return;
   }
@@ -636,11 +583,9 @@ void initTime()
   configTzTime(nvsTimezone, NTP_SERVER_1, NTP_SERVER_2);
 
   Serial.println("Syncing NTP...");
-  for (int i = 0; i < 20; i++)
-  {
+  for (int i = 0; i < 20; i++) {
     struct tm t;
-    if (getLocalTime(&t, 100))
-    {
+    if (getLocalTime(&t, 100)) {
       timeReady = true;
       Serial.printf("Time: %04d-%02d-%02d %02d:%02d local\r\n", t.tm_year + 1900,
                     t.tm_mon + 1, t.tm_mday, t.tm_hour, t.tm_min);
@@ -656,8 +601,7 @@ void initTime()
 
 // NYSE 9:30–16:00 ET, weekdays. Derived from UTC so the user-configurable
 // display timezone has no effect here.
-bool isMarketOpen()
-{
+bool isMarketOpen() {
   if (!timeReady)
     return true; // pre-NTP: assume open so stocks still fetch
   return isMarketOpenAt(time(nullptr));
@@ -677,8 +621,7 @@ bool isMarketOpen()
 static SemaphoreHandle_t dataMutex = nullptr;
 static TaskHandle_t fetchTaskHandle = nullptr;
 
-static void commitStocks(const StockQuote *tmp, int count)
-{
+static void commitStocks(const StockQuote *tmp, int count) {
   xSemaphoreTake(dataMutex, portMAX_DELAY);
   for (int i = 0; i < count; i++)
     stockQuotes[i] = tmp[i];
@@ -687,8 +630,7 @@ static void commitStocks(const StockQuote *tmp, int count)
   xSemaphoreGive(dataMutex);
 }
 
-static void fetchStocksImpl(bool force)
-{
+static void fetchStocksImpl(bool force) {
   if (!apiKeyConfigured() || WiFi.status() != WL_CONNECTED)
     return;
 
@@ -716,8 +658,7 @@ static void fetchStocksImpl(bool force)
   http.setConnectTimeout(5000);
   http.setTimeout(5000);
 
-  for (int i = 0; i < nvsTickerCount && count < MAX_STOCKS; i++)
-  {
+  for (int i = 0; i < nvsTickerCount && count < MAX_STOCKS; i++) {
     char url[256];
     snprintf(url, sizeof(url),
              "https://finnhub.io/api/v1/quote?symbol=%s&token=%s",
@@ -726,8 +667,7 @@ static void fetchStocksImpl(bool force)
     http.begin(client, url);
 
     int code = http.GET();
-    if (code != 200)
-    {
+    if (code != 200) {
       Serial.printf("Stock HTTP error: %d for %s\r\n", code, nvsTickers[i]);
       http.end();
       continue;
@@ -738,8 +678,7 @@ static void fetchStocksImpl(bool force)
 
     JsonDocument doc;
     DeserializationError err = deserializeJson(doc, body);
-    if (err)
-    {
+    if (err) {
       Serial.printf("Stock JSON parse error: %s for %s\r\n", err.c_str(),
                     nvsTickers[i]);
       continue;
@@ -758,8 +697,7 @@ static void fetchStocksImpl(bool force)
     count++;
   }
 
-  if (count > 0)
-  {
+  if (count > 0) {
     commitStocks(tmp, count);
     // Remember the session state only now that we actually captured data, so
     // the open->closed transition fetch retries until one succeeds.
@@ -768,8 +706,7 @@ static void fetchStocksImpl(bool force)
   }
 }
 
-static void commitWeather(const WeatherReading *tmp, int count)
-{
+static void commitWeather(const WeatherReading *tmp, int count) {
   xSemaphoreTake(dataMutex, portMAX_DELAY);
   for (int i = 0; i < count; i++)
     weatherReadings[i] = tmp[i];
@@ -778,8 +715,7 @@ static void commitWeather(const WeatherReading *tmp, int count)
   xSemaphoreGive(dataMutex);
 }
 
-static void commitNews(const NewsReading *tmp, int count)
-{
+static void commitNews(const NewsReading *tmp, int count) {
   xSemaphoreTake(dataMutex, portMAX_DELAY);
   for (int i = 0; i < count; i++)
     newsReadings[i] = tmp[i];
@@ -788,8 +724,7 @@ static void commitNews(const NewsReading *tmp, int count)
   xSemaphoreGive(dataMutex);
 }
 
-static void fetchWeatherImpl(bool force)
-{
+static void fetchWeatherImpl(bool force) {
   if (WiFi.status() != WL_CONNECTED || nvsLocationCount == 0)
     return;
 
@@ -811,8 +746,7 @@ static void fetchWeatherImpl(bool force)
   WeatherReading tmp[MAX_LOCATIONS];
   int count = 0;
 
-  for (int i = 0; i < nvsLocationCount && count < MAX_LOCATIONS; i++)
-  {
+  for (int i = 0; i < nvsLocationCount && count < MAX_LOCATIONS; i++) {
     if (!resolved[i].ok)
       continue; // malformed "lat,lon,label" entry
 
@@ -829,8 +763,7 @@ static void fetchWeatherImpl(bool force)
     // HTTPClient itself), so it must be set via setUserAgent().
     http.setUserAgent(WEATHER_USER_AGENT);
     int code = http.GET();
-    if (code != 200)
-    {
+    if (code != 200) {
       Serial.printf("Weather HTTP error: %d for %s\r\n", code, resolved[i].name);
       http.end();
       continue;
@@ -845,8 +778,7 @@ static void fetchWeatherImpl(bool force)
     DeserializationError err = deserializeJson(
         doc, http.getStream(), DeserializationOption::Filter(filter));
     http.end();
-    if (err)
-    {
+    if (err) {
       Serial.printf("Weather JSON parse error: %s for %s\r\n", err.c_str(),
                     resolved[i].name);
       continue;
@@ -856,8 +788,7 @@ static void fetchWeatherImpl(bool force)
     // °C; the display works in °F.
     JsonVariant tempC = doc["properties"]["timeseries"][0]["data"]["instant"]
                            ["details"]["air_temperature"];
-    if (tempC.isNull())
-    {
+    if (tempC.isNull()) {
       Serial.printf("Weather: no temperature for %s\r\n", resolved[i].name);
       continue;
     }
@@ -868,36 +799,24 @@ static void fetchWeatherImpl(bool force)
     count++;
   }
 
-  if (count > 0)
-  {
+  if (count > 0) {
     commitWeather(tmp, count);
     Serial.printf("Loaded %d weather entries\r\n", count);
   }
 }
 
-static void decodeHtmlEntities(char *s)
-{
-  static const struct
-  {
+static void decodeHtmlEntities(char *s) {
+  static const struct {
     const char *entity;
     size_t len;
     char ch;
-  } kEntities[] = {
-      {"&apos;", sizeof("&apos;") - 1, '\''},
-      {"&quot;", sizeof("&quot;") - 1, '"'},
-      {"&amp;", sizeof("&amp;") - 1, '&'},
-      {"&lt;", sizeof("&lt;") - 1, '<'},
-      {"&gt;", sizeof("&gt;") - 1, '>'},
-      {"&#39;", sizeof("&#39;") - 1, '\''},
+  } kEntities[] = { {"&apos;", sizeof("&apos;") - 1, '\''}, {"&quot;", sizeof("&quot;") - 1, '"'}, {"&amp;", sizeof("&amp;") - 1, '&'}, {"&lt;", sizeof("&lt;") - 1, '<'}, {"&gt;", sizeof("&gt;") - 1, '>'}, {"&#39;", sizeof("&#39;") - 1, '\''},
   };
   char *w = s;
-  for (const char *r = s; *r;)
-  {
+  for (const char *r = s; *r;) {
     bool matched = false;
-    for (auto &e : kEntities)
-    {
-      if (strncmp(r, e.entity, e.len) == 0)
-      {
+    for (auto &e : kEntities) {
+      if (strncmp(r, e.entity, e.len) == 0) {
         *w++ = e.ch;
         r += e.len;
         matched = true;
@@ -910,8 +829,7 @@ static void decodeHtmlEntities(char *s)
   *w = '\0';
 }
 
-static void fetchNewsImpl(bool force)
-{
+static void fetchNewsImpl(bool force) {
   static unsigned long lastNewsFetchMs = 0;
   if (!force && newsCount > 0 && millis() - lastNewsFetchMs < WEATHER_INTERVAL_MS)
     return;
@@ -920,8 +838,9 @@ static void fetchNewsImpl(bool force)
   NewsReading tmp[MAX_NEWS];
   int count = 0;
 
-  // Fetch live RSS feed from NPR 
-  if (WiFi.status() != WL_CONNECTED) return;
+  // Fetch live RSS feed from NPR
+  if (WiFi.status() != WL_CONNECTED)
+    return;
 
   HTTPClient http;
   http.setConnectTimeout(5000);
@@ -942,8 +861,7 @@ static void fetchNewsImpl(bool force)
   // === RSS PARSER: Works with either source ===
   // Find <item> then <title>...</title> handling whitespace
   const char *pos = rssData;
-  while (count < MAX_NEWS && (pos = strstr(pos, "<item>")) != nullptr)
-  {
+  while (count < MAX_NEWS && (pos = strstr(pos, "<item>")) != nullptr) {
     pos += 6; // skip "<item>"
 
     // Find <title> after <item>
@@ -972,21 +890,17 @@ static void fetchNewsImpl(bool force)
     count++;
   }
 
-  if (count > 0)
-  {
+  if (count > 0) {
     commitNews(tmp, count);
     Serial.printf("Loaded %d news entries from RSS\r\n", count);
   }
-  else
-  {
+  else {
     Serial.println("RSS parse: no entries found");
   }
 }
 
-static void fetchTask(void *)
-{
-  while (true)
-  {
+static void fetchTask(void *) {
+  while (true) {
     uint32_t forceVal;
     xTaskNotifyWait(0, 0, &forceVal, portMAX_DELAY);
     // None mode (enabledMask == 0) → nothing to display, nothing to fetch.
@@ -1012,8 +926,7 @@ static void fetchTask(void *)
   }
 }
 
-void triggerFetch(bool force = false)
-{
+void triggerFetch(bool force = false) {
   xTaskNotify(fetchTaskHandle, (uint32_t)force, eSetValueWithOverwrite);
 }
 
@@ -1021,8 +934,7 @@ void triggerFetch(bool force = false)
 // WiFi connect
 // ============================================================================
 
-void connectWifi()
-{
+void connectWifi() {
   if (!wifiConfigured() || WiFi.status() == WL_CONNECTED)
     return;
 
@@ -1030,18 +942,15 @@ void connectWifi()
   WiFi.begin(nvsWifiSsid, nvsWifiPass);
 
   for (int attempts = 0; WiFi.status() != WL_CONNECTED && attempts < 20;
-       attempts++)
-  {
+       attempts++) {
     delay(500);
   }
 
-  if (WiFi.status() == WL_CONNECTED)
-  {
+  if (WiFi.status() == WL_CONNECTED) {
     IPAddress ip = WiFi.localIP();
     Serial.printf("Connected, IP: %u.%u.%u.%u\r\n", ip[0], ip[1], ip[2], ip[3]);
   }
-  else
-  {
+  else {
     Serial.println("WiFi failed");
   }
 }
@@ -1062,8 +971,7 @@ uint8_t currentBit = BIT_STOCKS;
 
 // --- Per-category renderers ---
 
-void showNextStock()
-{
+void showNextStock() {
   StockQuote q;
   xSemaphoreTake(dataMutex, portMAX_DELAY);
   q = stockQuotes[currentStock];
@@ -1076,8 +984,7 @@ void showNextStock()
   scrollText(scrollBuf);
 }
 
-void showNextWeather()
-{
+void showNextWeather() {
   WeatherReading w;
   xSemaphoreTake(dataMutex, portMAX_DELAY);
   w = weatherReadings[currentWeather];
@@ -1091,8 +998,7 @@ void showNextWeather()
   scrollText(scrollBuf);
 }
 
-void showNextNews()
-{
+void showNextNews() {
   NewsReading n;
   xSemaphoreTake(dataMutex, portMAX_DELAY);
   n = newsReadings[currentNews];
@@ -1105,11 +1011,9 @@ void showNextNews()
 
 // 24-hour HH:MM. Used by the scrolling rotation when BIT_CLOCK shares the mask
 // with other categories. Single-clock mode uses tickStaticClock().
-void showNextClock()
-{
+void showNextClock() {
   struct tm t;
-  if (!getLocalTime(&t, 50))
-  {
+  if (!getLocalTime(&t, 50)) {
     scrollText("Loading time...");
     return;
   }
@@ -1123,8 +1027,7 @@ void showNextClock()
 // jumps would otherwise sit stale for up to a minute).
 static int staticClockLastMin = -1;
 
-void tickStaticClock()
-{
+void tickStaticClock() {
   struct tm t;
   if (!getLocalTime(&t, 0))
     return;
@@ -1152,13 +1055,11 @@ static int idlePixelDirY = 1;
 static unsigned long idleLastStepMs = 0;
 static bool idleNeedsFirstPaint = false;
 
-void tickIdle()
-{
+void tickIdle() {
   MD_MAX72XX *mx = display.getGraphicObject();
   unsigned long now = millis();
 
-  if (idleNeedsFirstPaint)
-  {
+  if (idleNeedsFirstPaint) {
     mx->clear();
     mx->setPoint(idlePixelRow, idlePixelCol, true);
     idleLastStepMs = now;
@@ -1173,25 +1074,21 @@ void tickIdle()
   mx->setPoint(idlePixelRow, idlePixelCol, false);
 
   idlePixelCol += idlePixelDirX;
-  if (idlePixelCol >= IDLE_COL_MAX)
-  {
+  if (idlePixelCol >= IDLE_COL_MAX) {
     idlePixelCol = IDLE_COL_MAX;
     idlePixelDirX = -1;
   }
-  else if (idlePixelCol <= 0)
-  {
+  else if (idlePixelCol <= 0) {
     idlePixelCol = 0;
     idlePixelDirX = 1;
   }
 
   idlePixelRow += idlePixelDirY;
-  if (idlePixelRow >= IDLE_ROW_MAX)
-  {
+  if (idlePixelRow >= IDLE_ROW_MAX) {
     idlePixelRow = IDLE_ROW_MAX;
     idlePixelDirY = -1;
   }
-  else if (idlePixelRow <= 0)
-  {
+  else if (idlePixelRow <= 0) {
     idlePixelRow = 0;
     idlePixelDirY = 1;
   }
@@ -1201,16 +1098,14 @@ void tickIdle()
 
 // --- Category rotation helpers ---
 
-static bool stocksAvailable()
-{
+static bool stocksAvailable() {
   return wifiConfigured() && apiKeyConfigured() && stockCount > 0;
 }
 
 static bool weatherAvailable() { return wifiConfigured() && weatherCount > 0; }
 static bool newsAvailable() { return newsCount > 0; } // WiFi check removed for testing
 
-static bool bitHasData(uint8_t b)
-{
+static bool bitHasData(uint8_t b) {
   if (b == BIT_STOCKS)
     return stocksAvailable();
   if (b == BIT_WEATHER)
@@ -1224,14 +1119,11 @@ static bool bitHasData(uint8_t b)
 
 // Advance currentBit to the next enabled bit that has data. If no enabled
 // bit has data, leave currentBit unchanged so showNext can show a loading hint.
-static void advanceCategory()
-{
+static void advanceCategory() {
   uint8_t start = currentBit;
-  for (int i = 0; i < 4; i++)
-  {
+  for (int i = 0; i < 4; i++) {
     currentBit = nextBit(currentBit);
-    if ((enabledMask & currentBit) && bitHasData(currentBit))
-    {
+    if ((enabledMask & currentBit) && bitHasData(currentBit)) {
       if (currentBit == BIT_STOCKS)
         currentStock = 0;
       else if (currentBit == BIT_WEATHER)
@@ -1245,8 +1137,7 @@ static void advanceCategory()
   currentBit = start;
 }
 
-static uint8_t firstActiveBit()
-{
+static uint8_t firstActiveBit() {
   const uint8_t order[] = {BIT_STOCKS, BIT_WEATHER, BIT_NEWS, BIT_CLOCK};
   for (uint8_t b : order)
     if ((enabledMask & b) && bitHasData(b))
@@ -1269,15 +1160,13 @@ static uint8_t firstActiveBit()
 // makes the next displayAnimate() complete immediately so fresh content
 // lands on the next tick. ("" must outlive the call; MD_Parola keeps the
 // pointer.)
-static void resetDisplay()
-{
+static void resetDisplay() {
   display.displayClear();
   display.setTextBuffer("");
   display.displayReset();
 }
 
-void enterContent()
-{
+void enterContent() {
   currentMode = MODE_CONTENT;
   currentStock = 0;
   currentWeather = 0;
@@ -1287,8 +1176,7 @@ void enterContent()
   resetDisplay();
 }
 
-bool maskPrereqsReady(uint8_t mask)
-{
+bool maskPrereqsReady(uint8_t mask) {
   if ((mask & BIT_STOCKS) && (!wifiConfigured() || !apiKeyConfigured()))
     return false;
   if ((mask & BIT_WEATHER) && !wifiConfigured())
@@ -1299,8 +1187,7 @@ bool maskPrereqsReady(uint8_t mask)
   return true;
 }
 
-void enterSetup(uint8_t targetMask)
-{
+void enterSetup(uint8_t targetMask) {
   currentMode = MODE_SETUP;
   setupTargetMask = targetMask ? targetMask : MASK_ALL;
   setupLastActivityMs = millis();
@@ -1308,14 +1195,12 @@ void enterSetup(uint8_t targetMask)
   resetDisplay();
 }
 
-void enterIdle()
-{
+void enterIdle() {
   // Re-entry keeps pixel position but still clears + repaints, wiping any
   // sign that overrode idle and just cleared.
   bool wasIdle = (currentMode == MODE_IDLE);
   currentMode = MODE_IDLE;
-  if (!wasIdle)
-  {
+  if (!wasIdle) {
     idlePixelCol = 0;
     idlePixelRow = 0;
     idlePixelDirX = 1;
@@ -1330,24 +1215,20 @@ void enterIdle()
 // Mode string for BLE reads/logs: "setup", "none", "all", or a comma list.
 // MODE_IDLE reports the underlying enabledMask (the categories that will
 // rotate once prereqs are met); "none" is the explicit persisted selection.
-void exitSetupIfReady()
-{
+void exitSetupIfReady() {
   // SETUP resumes into setupTargetMask, IDLE into enabledMask, once prereqs
   // are met. Explicit mask=0 ("none") in IDLE is sticky — never exits.
-  if (currentMode == MODE_SETUP)
-  {
+  if (currentMode == MODE_SETUP) {
     if (!maskPrereqsReady(setupTargetMask))
       return;
     enabledMask = setupTargetMask;
     saveDisplayMaskToNVS();
   }
-  else if (currentMode == MODE_IDLE)
-  {
+  else if (currentMode == MODE_IDLE) {
     if (enabledMask == 0 || !maskPrereqsReady(enabledMask))
       return;
   }
-  else
-  {
+  else {
     return;
   }
   enterContent();
@@ -1356,21 +1237,17 @@ void exitSetupIfReady()
   Serial.printf("Prereqs satisfied, exiting to %s\r\n", buf);
 }
 
-void showNextSetup()
-{
+void showNextSetup() {
   // The setup scroll is the PIN's recovery channel; 3+3 digit grouping
   // (assumes PIN_LEN 6). Static buf — MD_Parola keeps the pointer.
   static char buf[64];
   static char lastBuiltPin[PIN_LEN + 1] = {0};
-  if (strncmp(lastBuiltPin, nvsPin, sizeof(lastBuiltPin)) != 0)
-  {
-    if (nvsPin[0])
-    {
+  if (strncmp(lastBuiltPin, nvsPin, sizeof(lastBuiltPin)) != 0) {
+    if (nvsPin[0]) {
       snprintf(buf, sizeof(buf), "%s  v%s  PIN %.3s %.3s", bleDeviceName,
                FW_VERSION, nvsPin, nvsPin + 3);
     }
-    else
-    {
+    else {
       snprintf(buf, sizeof(buf), "%s  v%s", bleDeviceName, FW_VERSION);
     }
     strncpy(lastBuiltPin, nvsPin, sizeof(lastBuiltPin) - 1);
@@ -1380,10 +1257,8 @@ void showNextSetup()
   scrollTextAt(buf, SETUP_SCROLL_SPEED);
 }
 
-void showNext()
-{
-  if (currentMode == MODE_SETUP)
-  {
+void showNext() {
+  if (currentMode == MODE_SETUP) {
     showNextSetup();
     return;
   }
@@ -1398,11 +1273,9 @@ void showNext()
 
   // If the current bit has no data right now (pre-first-fetch, WiFi drop),
   // slide to an enabled bit that does. If none do, show a loading hint.
-  if (!bitHasData(currentBit))
-  {
+  if (!bitHasData(currentBit)) {
     advanceCategory();
-    if (!bitHasData(currentBit))
-    {
+    if (!bitHasData(currentBit)) {
       if (currentBit == BIT_STOCKS)
         scrollText("Loading stocks...");
       else if (currentBit == BIT_WEATHER)
@@ -1415,26 +1288,22 @@ void showNext()
     }
   }
 
-  if (currentBit == BIT_STOCKS)
-  {
+  if (currentBit == BIT_STOCKS) {
     showNextStock();
     if (currentStock == 0)
       advanceCategory();
   }
-  else if (currentBit == BIT_WEATHER)
-  {
+  else if (currentBit == BIT_WEATHER) {
     showNextWeather();
     if (currentWeather == 0)
       advanceCategory();
   }
-  else if (currentBit == BIT_NEWS)
-  {
+  else if (currentBit == BIT_NEWS) {
     showNextNews();
     if (currentNews == 0)
       advanceCategory();
   }
-  else if (currentBit == BIT_CLOCK)
-  {
+  else if (currentBit == BIT_CLOCK) {
     showNextClock();
     advanceCategory(); // one item per pass — always rotate after showing
   }
@@ -1453,8 +1322,7 @@ static void invalidateStatusRender() { statusShown[0] = '\0'; }
 
 // After a sign clears: content if a mask is enabled and prereqs are met,
 // else idle (never back into the setup scroll or a "Loading…" loop).
-static void resumeAmbient()
-{
+static void resumeAmbient() {
   staticClockLastMin = -1; // force an immediate steady-clock repaint, else
                            // the clock stays blank until the next minute
   if (enabledMask != 0 && maskPrereqsReady(enabledMask))
@@ -1465,8 +1333,7 @@ static void resumeAmbient()
 
 // Returns true if the status should render now; an expired timed status is
 // cleared in-place (caller falls through to the normal render path).
-bool checkStatusForRender()
-{
+bool checkStatusForRender() {
   if (activeStatusText[0] == '\0')
     return false;
   if (statusExpiresAt == 0 || statusExpiresAt == UINT32_MAX)
@@ -1485,8 +1352,7 @@ bool checkStatusForRender()
   return false;
 }
 
-static void clearActiveStatusAndResume()
-{
+static void clearActiveStatusAndResume() {
   clearStatus();
   invalidateStatusRender();
   resumeAmbient(); // enter*() helpers clear the display on transition
@@ -1494,23 +1360,19 @@ static void clearActiveStatusAndResume()
 
 // Signs display steady at the configured brightness. Scrolling signs already
 // have motion; static signs just hold.
-void tickActiveStatus()
-{
-  if (strcmp(statusShown, activeStatusText) != 0)
-  {
+void tickActiveStatus() {
+  if (strcmp(statusShown, activeStatusText) != 0) {
     strncpy(statusShown, activeStatusText, sizeof(statusShown) - 1);
     statusShown[sizeof(statusShown) - 1] = '\0';
     statusShownIsScroll = strlen(activeStatusText) > STATUS_STATIC_MAX_CHARS;
     display.setIntensity(displayBrightness);
     display.displayClear();
-    if (statusShownIsScroll)
-    {
+    if (statusShownIsScroll) {
       strncpy(scrollBuf, activeStatusText, sizeof(scrollBuf) - 1);
       scrollBuf[sizeof(scrollBuf) - 1] = '\0';
       scrollText(scrollBuf);
     }
-    else
-    {
+    else {
       useStaticFont();
       display.displayText(activeStatusText, PA_CENTER, 0, 0, PA_PRINT,
                           PA_NO_EFFECT);
@@ -1518,8 +1380,7 @@ void tickActiveStatus()
     }
   }
 
-  if (statusShownIsScroll)
-  {
+  if (statusShownIsScroll) {
     // Scroll path: pump the animation and loop.
     if (display.displayAnimate())
       display.displayReset();
@@ -1531,8 +1392,7 @@ void tickActiveStatus()
 // Minute-granular countdown: MM:SS, then the explosion animation and a
 // blank hold (EXPLOSION_END_HOLD_MS) before ambient resumes. Mutually
 // exclusive with the text sign — each cancels the other. RAM-only.
-enum TimerPhase
-{
+enum TimerPhase {
   TIMER_OFF,
   TIMER_RUN,
   TIMER_ANIM
@@ -1545,8 +1405,7 @@ static int animFrame = -1; // -1 = needs first paint
 static unsigned long animStepMs = 0;
 
 // Clears any text sign so the post-timer resume goes to ambient.
-static void startTimer(uint32_t minutes)
-{
+static void startTimer(uint32_t minutes) {
   if (minutes < 1)
     minutes = 1;
   if (minutes > TIMER_MAX_MINUTES)
@@ -1562,18 +1421,15 @@ static void startTimer(uint32_t minutes)
   Serial.printf("Timer: started for %lu min\r\n", (unsigned long)minutes);
 }
 
-static void cancelTimer()
-{
+static void cancelTimer() {
   timerPhase = TIMER_OFF;
   resumeAmbient(); // enter*() helpers clear the display on transition
 }
 
 // Draw a hollow diamond ring (Manhattan distance == r) — the shockwave front.
-static void drawRing(MD_MAX72XX *mx, int r)
-{
+static void drawRing(MD_MAX72XX *mx, int r) {
   for (int row = 0; row <= IDLE_ROW_MAX; row++)
-    for (int col = 0; col <= IDLE_COL_MAX; col++)
-    {
+    for (int col = 0; col <= IDLE_COL_MAX; col++) {
       int d = abs(col - ANIM_CENTER_COL) + abs(row - ANIM_CENTER_ROW);
       if (d == r)
         mx->setPoint(row, col, true);
@@ -1581,8 +1437,7 @@ static void drawRing(MD_MAX72XX *mx, int r)
 }
 
 // Draw a filled diamond (Manhattan distance <= r) — the detonation core flash.
-static void drawDiamondFill(MD_MAX72XX *mx, int r)
-{
+static void drawDiamondFill(MD_MAX72XX *mx, int r) {
   for (int row = 0; row <= IDLE_ROW_MAX; row++)
     for (int col = 0; col <= IDLE_COL_MAX; col++)
       if (abs(col - ANIM_CENTER_COL) + abs(row - ANIM_CENTER_ROW) <= r)
@@ -1591,12 +1446,10 @@ static void drawDiamondFill(MD_MAX72XX *mx, int r)
 
 // Diagonal debris riding just ahead of the shockwave, giving the blast its
 // spiky star shape (the 4 cardinal points already sit on the diamond ring).
-static void drawDebris(MD_MAX72XX *mx, int dist)
-{
+static void drawDebris(MD_MAX72XX *mx, int dist) {
   static const int8_t dx[4] = {1, 1, -1, -1};
   static const int8_t dy[4] = {1, -1, 1, -1};
-  for (int i = 0; i < 4; i++)
-  {
+  for (int i = 0; i < 4; i++) {
     int px = ANIM_CENTER_COL + dx[i] * dist;
     int py = ANIM_CENTER_ROW + dy[i] * dist;
     if (px >= 0 && px <= IDLE_COL_MAX && py >= 0 && py <= IDLE_ROW_MAX)
@@ -1608,8 +1461,7 @@ static void drawDebris(MD_MAX72XX *mx, int dist)
 // frames; each throws a 2-px-thick diamond shockwave plus diagonal debris
 // outward, led by a bright core flash. The panel brightness pops on each
 // detonation frame for punch. Fully deterministic — no randomness.
-static void drawExplosion(MD_MAX72XX *mx, int f)
-{
+static void drawExplosion(MD_MAX72XX *mx, int f) {
   mx->clear();
   bool detonating = false;
 
@@ -1621,20 +1473,16 @@ static void drawExplosion(MD_MAX72XX *mx, int f)
     lastBlastStart = 0;
 
   for (int start = 0; start <= f && start <= lastBlastStart;
-       start += EXPLOSION_CADENCE)
-  {
+       start += EXPLOSION_CADENCE) {
     int age = f - start;
-    if (age == 0)
-    { // detonation: bright filled core + panel flash
+    if (age == 0) { // detonation: bright filled core + panel flash
       drawDiamondFill(mx, 3);
       detonating = true;
     }
-    else if (age == 1)
-    {
+    else if (age == 1) {
       drawDiamondFill(mx, 1);
     }
-    if (age >= 1 && age <= EXPLOSION_MAX_R)
-    { // thick expanding shockwave
+    if (age >= 1 && age <= EXPLOSION_MAX_R) { // thick expanding shockwave
       drawRing(mx, age);
       drawRing(mx, age - 1);
       drawDebris(mx, age + 1); // debris leads the wave
@@ -1648,15 +1496,13 @@ static void drawExplosion(MD_MAX72XX *mx, int f)
 // End-animation pump. Frame-stepped via millis() like tickIdle() — no delay().
 // Plays the looped explosion, holds a blank matrix for EXPLOSION_END_HOLD_MS,
 // then resumes ambient.
-static void tickEndAnim()
-{
+static void tickEndAnim() {
   MD_MAX72XX *mx = display.getGraphicObject();
   unsigned long now = millis();
 
   // Hold phase: animStepMs was last reset when the final frame landed, so
   // it doubles as the hold-start timestamp.
-  if (animFrame >= EXPLOSION_FRAMES)
-  {
+  if (animFrame >= EXPLOSION_FRAMES) {
     if (now - animStepMs < EXPLOSION_END_HOLD_MS)
       return;
     timerPhase = TIMER_OFF;
@@ -1664,22 +1510,19 @@ static void tickEndAnim()
     return;
   }
 
-  if (animFrame < 0)
-  {
+  if (animFrame < 0) {
     display.displayClear(); // reset Parola zones before raw setPoint() use
     display.setIntensity(displayBrightness);
     mx->clear();
     animFrame = 0;
     animStepMs = now;
   }
-  else
-  {
+  else {
     if (now - animStepMs < ANIM_FRAME_MS)
       return;
     animStepMs = now;
     animFrame++;
-    if (animFrame >= EXPLOSION_FRAMES)
-    {
+    if (animFrame >= EXPLOSION_FRAMES) {
       // Blank explicitly — a stray debris pixel would sit lit all pause.
       mx->clear();
       return;
@@ -1691,10 +1534,8 @@ static void tickEndAnim()
 
 // Render pump for an active timer. Called from loop() with top precedence
 // (timer overrides text sign and ambient) whenever timerPhase != TIMER_OFF.
-void tickTimer()
-{
-  if (timerPhase == TIMER_ANIM)
-  {
+void tickTimer() {
+  if (timerPhase == TIMER_ANIM) {
     tickEndAnim();
     return;
   }
@@ -1702,8 +1543,7 @@ void tickTimer()
   // TIMER_RUN
   unsigned long now = millis();
   int32_t remainMs = (int32_t)(timerEndAt - now); // wrap-safe signed delta
-  if (remainMs <= 0)
-  {
+  if (remainMs <= 0) {
     timerPhase = TIMER_ANIM;
     animFrame = -1;
     Serial.println("Timer: done, playing explosion");
@@ -1750,8 +1590,7 @@ char bleDeviceName[24];
 // shared Espressif OUI (identical across a batch — many units collide on the
 // same suffix). Use the top two bytes (mac[5], mac[4]) — the per-device NIC
 // portion — for a suffix that's unique regardless of manufacturing lot.
-void buildDeviceName()
-{
+void buildDeviceName() {
   uint64_t mac = ESP.getEfuseMac();
   snprintf(bleDeviceName, sizeof(bleDeviceName), "%s-%02X%02X", BLE_DEVICE_NAME,
            (uint8_t)((mac >> 40) & 0xFF), (uint8_t)((mac >> 32) & 0xFF));
@@ -1768,8 +1607,7 @@ void buildDeviceName()
 #define AUTH_FAIL_THRESHOLD 5
 #define AUTH_LOCKOUT_MS 5000
 
-struct AuthSlot
-{
+struct AuthSlot {
   uint16_t handle;
   bool inUse;
   bool authed;
@@ -1778,22 +1616,17 @@ struct AuthSlot
 };
 static AuthSlot authSlots[AUTH_MAX_CONNS];
 
-static AuthSlot *findSlot(uint16_t handle)
-{
-  for (int i = 0; i < AUTH_MAX_CONNS; i++)
-  {
+static AuthSlot *findSlot(uint16_t handle) {
+  for (int i = 0; i < AUTH_MAX_CONNS; i++) {
     if (authSlots[i].inUse && authSlots[i].handle == handle)
       return &authSlots[i];
   }
   return nullptr;
 }
 
-static AuthSlot *allocSlot(uint16_t handle)
-{
-  for (int i = 0; i < AUTH_MAX_CONNS; i++)
-  {
-    if (!authSlots[i].inUse)
-    {
+static AuthSlot *allocSlot(uint16_t handle) {
+  for (int i = 0; i < AUTH_MAX_CONNS; i++) {
+    if (!authSlots[i].inUse) {
       authSlots[i] = {handle, true, false, 0, 0};
       return &authSlots[i];
     }
@@ -1801,8 +1634,7 @@ static AuthSlot *allocSlot(uint16_t handle)
   return nullptr;
 }
 
-bool isConnAuthed(uint16_t handle)
-{
+bool isConnAuthed(uint16_t handle) {
   if (!nvsPinEnforce)
     return true;
   AuthSlot *s = findSlot(handle);
@@ -1813,40 +1645,33 @@ bool isConnAuthed(uint16_t handle)
 // disconnect — onDisconnect must restart it or the device goes invisible
 // until reboot. Each connect requests encryption; bonded peers auth
 // silently, decliners stay connected but unauthed (PIN/Auth path).
-class ServerCallbacks : public NimBLEServerCallbacks
-{
-  void onConnect(NimBLEServer *, ble_gap_conn_desc *desc) override
-  {
+class ServerCallbacks : public NimBLEServerCallbacks {
+  void onConnect(NimBLEServer *, ble_gap_conn_desc *desc) override {
     AuthSlot *s = allocSlot(desc->conn_handle);
     Serial.printf("BLE: client connected (handle=%u, slot=%s, encrypted=%d)\r\n",
                   desc->conn_handle, s ? "ok" : "FULL",
                   desc->sec_state.encrypted);
-    if (s && desc->sec_state.encrypted)
-    {
+    if (s && desc->sec_state.encrypted) {
       s->authed = true; // returning bonded peer
     }
-    else
-    {
+    else {
       // Non-blocking; outcome arrives via onAuthenticationComplete. A
       // central that refuses simply stays unauthed.
       NimBLEDevice::startSecurity(desc->conn_handle);
     }
   }
-  void onDisconnect(NimBLEServer *, ble_gap_conn_desc *desc) override
-  {
+  void onDisconnect(NimBLEServer *, ble_gap_conn_desc *desc) override {
     AuthSlot *s = findSlot(desc->conn_handle);
     if (s)
       s->inUse = false;
     Serial.println("BLE: client disconnected, resuming advertising");
     NimBLEDevice::startAdvertising();
   }
-  void onAuthenticationComplete(ble_gap_conn_desc *desc) override
-  {
+  void onAuthenticationComplete(ble_gap_conn_desc *desc) override {
     Serial.printf("BLE auth: pairing complete (handle=%u, encrypted=%d)\r\n",
                   desc->conn_handle, desc->sec_state.encrypted);
     AuthSlot *s = findSlot(desc->conn_handle);
-    if (desc->sec_state.encrypted)
-    {
+    if (desc->sec_state.encrypted) {
       if (s)
         s->authed = true;
       return;
@@ -1862,8 +1687,7 @@ class ServerCallbacks : public NimBLEServerCallbacks
         desc->conn_handle);
     NimBLEDevice::getServer()->disconnect(desc->conn_handle);
   }
-  uint32_t onPassKeyRequest() override
-  {
+  uint32_t onPassKeyRequest() override {
     // SMP compares this against what the user typed on the phone.
     uint32_t key = (uint32_t)strtoul(nvsPin, nullptr, 10);
     Serial.printf("BLE auth: passkey requested, serving %06u\r\n", (unsigned)key);
@@ -1875,8 +1699,7 @@ class ServerCallbacks : public NimBLEServerCallbacks
 // empty or overrunning payloads (>= bufLen leaves room for the NUL);
 // returns true on stash so callers can track post-stash state.
 static bool stashBleWrite(NimBLECharacteristic *pChar, char *buf, size_t bufLen,
-                          volatile bool &pendingFlag)
-{
+                          volatile bool &pendingFlag) {
   std::string val = pChar->getValue();
   if (val.length() == 0 || val.length() >= bufLen)
     return false;
@@ -1890,17 +1713,14 @@ static bool stashBleWrite(NimBLECharacteristic *pChar, char *buf, size_t bufLen,
 // with no extra write policy. Ones that need more — cooldown (Tickers,
 // Locations), empty-as-clear (Status), payload-dependent (Cmd), Auth —
 // hand-roll their callbacks and must gate manually.
-class GatedStashCallbacks : public NimBLECharacteristicCallbacks
-{
+class GatedStashCallbacks : public NimBLECharacteristicCallbacks {
 public:
   GatedStashCallbacks(const char *label, char *buf, size_t bufLen,
                       volatile bool &pendingFlag)
       : label(label), buf(buf), bufLen(bufLen), pendingFlag(pendingFlag) {}
 
-  void onWrite(NimBLECharacteristic *pChar, ble_gap_conn_desc *desc) override
-  {
-    if (!isConnAuthed(desc->conn_handle))
-    {
+  void onWrite(NimBLECharacteristic *pChar, ble_gap_conn_desc *desc) override {
+    if (!isConnAuthed(desc->conn_handle)) {
       Serial.printf("BLE %s: unauthed, ignoring\r\n", label);
       return;
     }
@@ -1925,22 +1745,19 @@ private:
 volatile bool wifiUpdatePending = false;
 char pendingWifiStr[BLE_WIFI_BUF_LEN];
 
-class WifiCallbacks : public GatedStashCallbacks
-{
+class WifiCallbacks : public GatedStashCallbacks {
 public:
   WifiCallbacks()
       : GatedStashCallbacks("wifi", pendingWifiStr, BLE_WIFI_BUF_LEN,
                             wifiUpdatePending) {}
 
-  void onRead(NimBLECharacteristic *pChar) override
-  {
+  void onRead(NimBLECharacteristic *pChar) override {
     // Return SSID only — never expose the password over BLE
     pChar->setValue((uint8_t *)nvsWifiSsid, strlen(nvsWifiSsid));
   }
 };
 
-void applyPendingWifi()
-{
+void applyPendingWifi() {
   wifiUpdatePending = false;
 
   // Split on first '|' — password may contain '|'. A missing separator means
@@ -1948,14 +1765,12 @@ void applyPendingWifi()
   char *sep = strchr(pendingWifiStr, '|');
   const char *ssid = pendingWifiStr;
   const char *pass = "";
-  if (sep)
-  {
+  if (sep) {
     *sep = '\0';
     pass = sep + 1;
   }
 
-  if (strlen(ssid) == 0 || strlen(ssid) >= WIFI_SSID_MAX)
-  {
+  if (strlen(ssid) == 0 || strlen(ssid) >= WIFI_SSID_MAX) {
     Serial.println("BLE wifi: invalid SSID, ignoring");
     return;
   }
@@ -1984,21 +1799,18 @@ void applyPendingWifi()
 volatile bool apiKeyUpdatePending = false;
 char pendingApiKey[MAX_APIKEY_LEN];
 
-class ApiKeyCallbacks : public GatedStashCallbacks
-{
+class ApiKeyCallbacks : public GatedStashCallbacks {
 public:
   ApiKeyCallbacks()
       : GatedStashCallbacks("apikey", pendingApiKey, MAX_APIKEY_LEN,
                             apiKeyUpdatePending) {}
 
-  void onRead(NimBLECharacteristic *pChar) override
-  {
+  void onRead(NimBLECharacteristic *pChar) override {
     pChar->setValue((uint8_t *)nvsApiKey, strlen(nvsApiKey));
   }
 };
 
-void applyPendingApiKey()
-{
+void applyPendingApiKey() {
   apiKeyUpdatePending = false;
   strncpy(nvsApiKey, pendingApiKey, MAX_APIKEY_LEN - 1);
   nvsApiKey[MAX_APIKEY_LEN - 1] = '\0';
@@ -2018,34 +1830,27 @@ void applyPendingApiKey()
 volatile bool tickerUpdatePending = false;
 char pendingTickerStr[BLE_TICKER_BUF_LEN];
 
-class TickerCallbacks : public NimBLECharacteristicCallbacks
-{
-  void onWrite(NimBLECharacteristic *pChar, ble_gap_conn_desc *desc) override
-  {
-    if (!isConnAuthed(desc->conn_handle))
-    {
+class TickerCallbacks : public NimBLECharacteristicCallbacks {
+  void onWrite(NimBLECharacteristic *pChar, ble_gap_conn_desc *desc) override {
+    if (!isConnAuthed(desc->conn_handle)) {
       Serial.println("BLE tickers: unauthed, ignoring");
       return;
     }
     setupLastActivityMs = millis();
-    if (millis() - lastBLEFetchMs < BLE_FETCH_COOLDOWN_MS)
-    {
+    if (millis() - lastBLEFetchMs < BLE_FETCH_COOLDOWN_MS) {
       Serial.println("BLE tickers: cooldown, ignoring");
       return;
     }
     if (stashBleWrite(pChar, pendingTickerStr, BLE_TICKER_BUF_LEN,
-                      tickerUpdatePending))
-    {
+                      tickerUpdatePending)) {
       lastBLEFetchMs = millis();
     }
   }
 
-  void onRead(NimBLECharacteristic *pChar) override
-  {
+  void onRead(NimBLECharacteristic *pChar) override {
     char buf[BLE_TICKER_BUF_LEN];
     int len = 0;
-    for (int i = 0; i < nvsTickerCount && len < (int)sizeof(buf) - 1; i++)
-    {
+    for (int i = 0; i < nvsTickerCount && len < (int)sizeof(buf) - 1; i++) {
       if (i > 0)
         buf[len++] = ',';
       int remaining = sizeof(buf) - 1 - len;
@@ -2058,8 +1863,7 @@ class TickerCallbacks : public NimBLECharacteristicCallbacks
   }
 };
 
-void applyPendingTickers()
-{
+void applyPendingTickers() {
   char buf[BLE_TICKER_BUF_LEN];
   strncpy(buf, pendingTickerStr, sizeof(buf) - 1);
   buf[sizeof(buf) - 1] = '\0';
@@ -2069,8 +1873,7 @@ void applyPendingTickers()
   int count = 0;
 
   char *token = strtok(buf, ",");
-  while (token && count < MAX_STOCKS)
-  {
+  while (token && count < MAX_STOCKS) {
     while (*token == ' ')
       token++;
     int len = strlen(token);
@@ -2078,8 +1881,7 @@ void applyPendingTickers()
       len--;
     token[len] = '\0';
 
-    if (len > 0 && len < MAX_TICKER_LEN)
-    {
+    if (len > 0 && len < MAX_TICKER_LEN) {
       strncpy(tmp[count], token, MAX_TICKER_LEN - 1);
       tmp[count][MAX_TICKER_LEN - 1] = '\0';
       for (int j = 0; tmp[count][j]; j++)
@@ -2089,8 +1891,7 @@ void applyPendingTickers()
     token = strtok(nullptr, ",");
   }
 
-  if (count == 0)
-  {
+  if (count == 0) {
     Serial.println("BLE: no valid tickers, ignoring");
     return;
   }
@@ -2113,34 +1914,27 @@ void applyPendingTickers()
 volatile bool locsUpdatePending = false;
 char pendingLocsStr[BLE_LOCS_BUF_LEN];
 
-class LocsCallbacks : public NimBLECharacteristicCallbacks
-{
-  void onWrite(NimBLECharacteristic *pChar, ble_gap_conn_desc *desc) override
-  {
-    if (!isConnAuthed(desc->conn_handle))
-    {
+class LocsCallbacks : public NimBLECharacteristicCallbacks {
+  void onWrite(NimBLECharacteristic *pChar, ble_gap_conn_desc *desc) override {
+    if (!isConnAuthed(desc->conn_handle)) {
       Serial.println("BLE locations: unauthed, ignoring");
       return;
     }
     setupLastActivityMs = millis();
-    if (millis() - lastBLEFetchMs < BLE_FETCH_COOLDOWN_MS)
-    {
+    if (millis() - lastBLEFetchMs < BLE_FETCH_COOLDOWN_MS) {
       Serial.println("BLE locations: cooldown, ignoring");
       return;
     }
     if (stashBleWrite(pChar, pendingLocsStr, BLE_LOCS_BUF_LEN,
-                      locsUpdatePending))
-    {
+                      locsUpdatePending)) {
       lastBLEFetchMs = millis();
     }
   }
 
-  void onRead(NimBLECharacteristic *pChar) override
-  {
+  void onRead(NimBLECharacteristic *pChar) override {
     char buf[BLE_LOCS_BUF_LEN];
     int len = 0;
-    for (int i = 0; i < nvsLocationCount && len < (int)sizeof(buf) - 1; i++)
-    {
+    for (int i = 0; i < nvsLocationCount && len < (int)sizeof(buf) - 1; i++) {
       if (i > 0 && len < (int)sizeof(buf) - 1)
         buf[len++] = '|';
       int remaining = sizeof(buf) - 1 - len;
@@ -2153,8 +1947,7 @@ class LocsCallbacks : public NimBLECharacteristicCallbacks
   }
 };
 
-void applyPendingLocations()
-{
+void applyPendingLocations() {
   char buf[BLE_LOCS_BUF_LEN];
   strncpy(buf, pendingLocsStr, sizeof(buf) - 1);
   buf[sizeof(buf) - 1] = '\0';
@@ -2164,8 +1957,7 @@ void applyPendingLocations()
   int count = 0;
 
   char *token = strtok(buf, "|");
-  while (token && count < MAX_LOCATIONS)
-  {
+  while (token && count < MAX_LOCATIONS) {
     while (*token == ' ')
       token++;
     int len = strlen(token);
@@ -2173,8 +1965,7 @@ void applyPendingLocations()
       len--;
     token[len] = '\0';
 
-    if (len > 0 && len < MAX_LOCATION_LEN)
-    {
+    if (len > 0 && len < MAX_LOCATION_LEN) {
       strncpy(tmp[count], token, MAX_LOCATION_LEN - 1);
       tmp[count][MAX_LOCATION_LEN - 1] = '\0';
       count++;
@@ -2182,8 +1973,7 @@ void applyPendingLocations()
     token = strtok(nullptr, "|");
   }
 
-  if (count == 0)
-  {
+  if (count == 0) {
     Serial.println("BLE: no valid locations, ignoring");
     return;
   }
@@ -2211,15 +2001,13 @@ volatile bool modeUpdatePending = false;
 // "stocks,weather,news,clock" (25 chars + NUL), plus slack.
 char pendingModeStr[64];
 
-class ModeCallbacks : public GatedStashCallbacks
-{
+class ModeCallbacks : public GatedStashCallbacks {
 public:
   ModeCallbacks()
       : GatedStashCallbacks("mode", pendingModeStr, sizeof(pendingModeStr),
                             modeUpdatePending) {}
 
-  void onRead(NimBLECharacteristic *pChar) override
-  {
+  void onRead(NimBLECharacteristic *pChar) override {
     char buf[64];
     int len = formatModeName(buf, sizeof(buf), enabledMask,
                              currentMode == MODE_SETUP);
@@ -2235,32 +2023,27 @@ public:
 // parseModePayload() (Mode payload -> category mask) lives in logic.h/.cpp
 // (host-tested).
 
-void applyPendingMode()
-{
+void applyPendingMode() {
   modeUpdatePending = false;
   uint8_t mask = parseModePayload(pendingModeStr);
-  if (mask == 0)
-  {
+  if (mask == 0) {
     Serial.printf("BLE: unknown/empty mode \"%s\", ignoring\r\n", pendingModeStr);
     return;
   }
   // enter*() below resets the display buffer; drop the sign's render cache so
   // an active sign repaints on the next tick instead of staying blank.
   invalidateStatusRender();
-  if (mask == MASK_NONE_REQUEST)
-  {
+  if (mask == MASK_NONE_REQUEST) {
     enabledMask = 0;
     saveDisplayMaskToNVS();
     enterIdle();
   }
-  else
-  {
+  else {
     enabledMask = mask;
     saveDisplayMaskToNVS();
     if (!maskPrereqsReady(mask))
       enterSetup(mask);
-    else
-    {
+    else {
       enterContent();
       // Fetch now (not at the next periodic tick); force=true bypasses the
       // market-hours gate — last close beats "Loading stocks...".
@@ -2288,12 +2071,9 @@ void applyPendingMode()
 volatile bool statusUpdatePending = false;
 char pendingStatusStr[BLE_STATUS_BUF_LEN];
 
-class StatusCallbacks : public NimBLECharacteristicCallbacks
-{
-  void onWrite(NimBLECharacteristic *pChar, ble_gap_conn_desc *desc) override
-  {
-    if (!isConnAuthed(desc->conn_handle))
-    {
+class StatusCallbacks : public NimBLECharacteristicCallbacks {
+  void onWrite(NimBLECharacteristic *pChar, ble_gap_conn_desc *desc) override {
+    if (!isConnAuthed(desc->conn_handle)) {
       Serial.println("BLE status: unauthed, ignoring");
       return;
     }
@@ -2306,17 +2086,14 @@ class StatusCallbacks : public NimBLECharacteristicCallbacks
     statusUpdatePending = true;
   }
 
-  void onRead(NimBLECharacteristic *pChar) override
-  {
+  void onRead(NimBLECharacteristic *pChar) override {
     char buf[BLE_STATUS_BUF_LEN];
-    if (activeStatusText[0] == '\0')
-    {
+    if (activeStatusText[0] == '\0') {
       pChar->setValue((uint8_t *)buf, 0);
       return;
     }
     uint32_t remaining = 0; // 0 means "indefinite" on the read side
-    if (statusExpiresAt != 0 && statusExpiresAt != UINT32_MAX)
-    {
+    if (statusExpiresAt != 0 && statusExpiresAt != UINT32_MAX) {
       int32_t deltaMs = (int32_t)(statusExpiresAt - millis());
       remaining = (deltaMs > 0) ? (uint32_t)(deltaMs / 1000) : 1;
     }
@@ -2329,15 +2106,13 @@ class StatusCallbacks : public NimBLECharacteristicCallbacks
   }
 };
 
-void applyPendingStatus()
-{
+void applyPendingStatus() {
   char buf[BLE_STATUS_BUF_LEN];
   strncpy(buf, pendingStatusStr, sizeof(buf) - 1);
   buf[sizeof(buf) - 1] = '\0';
   statusUpdatePending = false;
 
-  if (buf[0] == '\0')
-  {
+  if (buf[0] == '\0') {
     if (activeStatusText[0])
       Serial.println("BLE status: cleared");
     clearActiveStatusAndResume();
@@ -2347,8 +2122,7 @@ void applyPendingStatus()
   // strrchr (last '|') rather than strchr (first) because status text may
   // contain pipes in theory; the seconds tail never does.
   char *sep = strrchr(buf, '|');
-  if (!sep)
-  {
+  if (!sep) {
     Serial.println("BLE status: missing '|' separator, ignoring");
     return;
   }
@@ -2362,8 +2136,7 @@ void applyPendingStatus()
   int textLen = strlen(text);
   while (textLen > 0 && text[textLen - 1] == ' ')
     text[--textLen] = '\0';
-  if (textLen == 0)
-  {
+  if (textLen == 0) {
     if (activeStatusText[0])
       Serial.println("BLE status: empty text, clearing");
     clearActiveStatusAndResume();
@@ -2372,8 +2145,7 @@ void applyPendingStatus()
 
   char *tailEnd = nullptr;
   unsigned long secs = strtoul(tail, &tailEnd, 10);
-  if (tailEnd == tail)
-  {
+  if (tailEnd == tail) {
     Serial.println("BLE status: bad seconds value, ignoring");
     return;
   }
@@ -2381,13 +2153,11 @@ void applyPendingStatus()
   strncpy(activeStatusText, text, STATUS_MAX_LEN - 1);
   activeStatusText[STATUS_MAX_LEN - 1] = '\0';
 
-  if (secs == 0)
-  {
+  if (secs == 0) {
     statusExpiresAt = UINT32_MAX;
     Serial.printf("BLE status: \"%s\" indefinite\r\n", activeStatusText);
   }
-  else
-  {
+  else {
     // millis()-based: relative timing works without WiFi/NTP. Avoid the
     // 0 and UINT32_MAX sentinels in the unlikely target collision.
     uint32_t target = millis() + secs * 1000UL;
@@ -2397,8 +2167,7 @@ void applyPendingStatus()
     Serial.printf("BLE status: \"%s\" for %lus\r\n", activeStatusText, secs);
   }
   // A new text sign takes over the override slot from any running timer.
-  if (timerPhase != TIMER_OFF)
-  {
+  if (timerPhase != TIMER_OFF) {
     timerPhase = TIMER_OFF;
     Serial.println("BLE status: new sign cancels active timer");
   }
@@ -2408,8 +2177,7 @@ void applyPendingStatus()
   // Sign-only inference: a sign on a no-WiFi device → persist mode=none so
   // the next boot lands in idle, not the setup scroll. Adding WiFi later
   // doesn't auto-restore categories — the user writes a real mode.
-  if (!wifiConfigured() && enabledMask != 0)
-  {
+  if (!wifiConfigured() && enabledMask != 0) {
     Serial.println("BLE status: no-WiFi + first sign — persisting mode=none");
     enabledMask = 0;
     saveDisplayMaskToNVS();
@@ -2432,15 +2200,13 @@ char pendingPowerStr[8]; // big enough for "on" / "off" with NUL
 // No callbacks class — no onRead (setPower() maintains the value), so
 // initBLE() uses GatedStashCallbacks directly.
 
-void setPower(bool off)
-{
+void setPower(bool off) {
   if (off == displayOff)
     return; // idempotent
 
   displayOff = off;
 
-  if (off)
-  {
+  if (off) {
     display.displayClear();
     // Eager NeoPixel kill — updateStatusLed() only repaints on fetch-flag
     // transitions, so a mid-flight fetch would leave a stale blue dot lit.
@@ -2448,8 +2214,7 @@ void setPower(bool off)
     ledState = false;
     Serial.println("Power: display OFF");
   }
-  else
-  {
+  else {
     // The sign's render cache is stale; content deserves fresh data.
     invalidateStatusRender();
     triggerFetch();
@@ -2465,8 +2230,7 @@ void setPower(bool off)
     pPowerChar->setValue((uint8_t *)"on", 2);
 }
 
-void applyPendingPower()
-{
+void applyPendingPower() {
   char buf[sizeof(pendingPowerStr)];
   strncpy(buf, pendingPowerStr, sizeof(buf) - 1);
   buf[sizeof(buf) - 1] = '\0';
@@ -2480,23 +2244,19 @@ void applyPendingPower()
   char tok[8];
   size_t i = 0;
   while (p[i] && p[i] != ' ' && p[i] != '\t' && p[i] != '\n' && p[i] != '\r' &&
-         i < sizeof(tok) - 1)
-  {
+         i < sizeof(tok) - 1) {
     tok[i] = (p[i] >= 'A' && p[i] <= 'Z') ? (p[i] + 32) : p[i];
     i++;
   }
   tok[i] = '\0';
 
-  if (strcmp(tok, "off") == 0)
-  {
+  if (strcmp(tok, "off") == 0) {
     setPower(true);
   }
-  else if (strcmp(tok, "on") == 0)
-  {
+  else if (strcmp(tok, "on") == 0) {
     setPower(false);
   }
-  else
-  {
+  else {
     Serial.printf("BLE power: unknown value \"%s\", ignoring\r\n",
                   pendingPowerStr);
   }
@@ -2516,16 +2276,14 @@ void applyPendingPower()
 volatile bool displayCfgUpdatePending = false;
 char pendingDisplayCfgStr[16]; // "15|500" worst case fits comfortably
 
-class DisplayCfgCallbacks : public GatedStashCallbacks
-{
+class DisplayCfgCallbacks : public GatedStashCallbacks {
 public:
   DisplayCfgCallbacks()
       : GatedStashCallbacks("display", pendingDisplayCfgStr,
                             sizeof(pendingDisplayCfgStr),
                             displayCfgUpdatePending) {}
 
-  void onRead(NimBLECharacteristic *pChar) override
-  {
+  void onRead(NimBLECharacteristic *pChar) override {
     char buf[16];
     int n = snprintf(buf, sizeof(buf), "%u|%u", displayBrightness,
                      (unsigned)scrollSpeedMs);
@@ -2533,16 +2291,14 @@ public:
   }
 };
 
-void applyPendingDisplayCfg()
-{
+void applyPendingDisplayCfg() {
   char buf[sizeof(pendingDisplayCfgStr)];
   strncpy(buf, pendingDisplayCfgStr, sizeof(buf) - 1);
   buf[sizeof(buf) - 1] = '\0';
   displayCfgUpdatePending = false;
 
   char *sep = strchr(buf, '|');
-  if (!sep)
-  {
+  if (!sep) {
     Serial.printf("BLE display: malformed \"%s\", ignoring\r\n", buf);
     return;
   }
@@ -2551,8 +2307,7 @@ void applyPendingDisplayCfg()
   char *endS;
   long bright = strtol(buf, &endB, 10);
   long scroll = strtol(sep + 1, &endS, 10);
-  if (endB == buf || endS == sep + 1)
-  {
+  if (endB == buf || endS == sep + 1) {
     Serial.printf("BLE display: non-numeric \"%s|%s\", ignoring\r\n", buf,
                   sep + 1);
     return;
@@ -2591,28 +2346,24 @@ void applyPendingDisplayCfg()
 volatile bool tzUpdatePending = false;
 char pendingTzStr[MAX_TZ_LEN];
 
-class TimezoneCallbacks : public GatedStashCallbacks
-{
+class TimezoneCallbacks : public GatedStashCallbacks {
 public:
   TimezoneCallbacks()
       : GatedStashCallbacks("timezone", pendingTzStr, MAX_TZ_LEN,
                             tzUpdatePending) {}
 
-  void onRead(NimBLECharacteristic *pChar) override
-  {
+  void onRead(NimBLECharacteristic *pChar) override {
     pChar->setValue((uint8_t *)nvsTimezone, strlen(nvsTimezone));
   }
 };
 
-void applyPendingTimezone()
-{
+void applyPendingTimezone() {
   tzUpdatePending = false;
 
   // Light sanity check only — a full POSIX TZ parse isn't practical. A
   // malformed string falls back to UTC rendering, which is visible and
   // recoverable over BLE.
-  if (!isalpha((unsigned char)pendingTzStr[0]))
-  {
+  if (!isalpha((unsigned char)pendingTzStr[0])) {
     Serial.printf("BLE timezone: rejecting \"%s\"\r\n", pendingTzStr);
     return;
   }
@@ -2637,46 +2388,38 @@ void applyPendingTimezone()
 
 #define BLE_AUTH_CHAR_UUID "beb5483e-36e1-4688-b7f5-ea07361b26b2"
 
-class AuthCallbacks : public NimBLECharacteristicCallbacks
-{
-  void onRead(NimBLECharacteristic *pChar, ble_gap_conn_desc *desc) override
-  {
+class AuthCallbacks : public NimBLECharacteristicCallbacks {
+  void onRead(NimBLECharacteristic *pChar, ble_gap_conn_desc *desc) override {
     // "ok" iff this connection may write — lets the CLI verify its PIN
     // landed before firing a write that would be silently dropped.
     const char *v = isConnAuthed(desc->conn_handle) ? "ok" : "";
     pChar->setValue((uint8_t *)v, strlen(v));
   }
-  void onWrite(NimBLECharacteristic *pChar, ble_gap_conn_desc *desc) override
-  {
+  void onWrite(NimBLECharacteristic *pChar, ble_gap_conn_desc *desc) override {
     AuthSlot *s = findSlot(desc->conn_handle);
     if (!s)
       return;
-    if (s->lockoutUntilMs && (int32_t)(millis() - s->lockoutUntilMs) < 0)
-    {
+    if (s->lockoutUntilMs && (int32_t)(millis() - s->lockoutUntilMs) < 0) {
       // In lockout — drop silently so an attacker can't probe the boundary.
       return;
     }
     std::string val = pChar->getValue();
     // Trim trailing whitespace/newlines.
     while (!val.empty() && (val.back() == ' ' || val.back() == '\n' ||
-                            val.back() == '\r' || val.back() == '\t'))
-    {
+                            val.back() == '\r' || val.back() == '\t')) {
       val.pop_back();
     }
-    if (val == nvsPin)
-    {
+    if (val == nvsPin) {
       s->authed = true;
       s->failCount = 0;
       s->lockoutUntilMs = 0;
       Serial.printf("BLE auth: conn=%u authenticated\r\n", desc->conn_handle);
     }
-    else
-    {
+    else {
       s->failCount++;
       Serial.printf("BLE auth: bad PIN from conn=%u (fail %u/%u)\r\n",
                     desc->conn_handle, s->failCount, AUTH_FAIL_THRESHOLD);
-      if (s->failCount >= AUTH_FAIL_THRESHOLD)
-      {
+      if (s->failCount >= AUTH_FAIL_THRESHOLD) {
         s->lockoutUntilMs = millis() + AUTH_LOCKOUT_MS;
         if (s->lockoutUntilMs == 0)
           s->lockoutUntilMs = 1; // avoid sentinel
@@ -2694,10 +2437,8 @@ class AuthCallbacks : public NimBLECharacteristicCallbacks
 
 #define BLE_VERSION_CHAR_UUID "beb5483e-36e1-4688-b7f5-ea07361b26b0"
 
-class VersionCallbacks : public NimBLECharacteristicCallbacks
-{
-  void onRead(NimBLECharacteristic *pChar) override
-  {
+class VersionCallbacks : public NimBLECharacteristicCallbacks {
+  void onRead(NimBLECharacteristic *pChar) override {
     pChar->setValue(FW_VERSION);
   }
 };
@@ -2711,12 +2452,9 @@ class VersionCallbacks : public NimBLECharacteristicCallbacks
 volatile bool cmdPending = false;
 char pendingCmd[16];
 
-class CmdCallbacks : public NimBLECharacteristicCallbacks
-{
-  void onWrite(NimBLECharacteristic *pChar, ble_gap_conn_desc *desc) override
-  {
-    if (!isConnAuthed(desc->conn_handle))
-    {
+class CmdCallbacks : public NimBLECharacteristicCallbacks {
+  void onWrite(NimBLECharacteristic *pChar, ble_gap_conn_desc *desc) override {
+    if (!isConnAuthed(desc->conn_handle)) {
       Serial.println("BLE cmd: unauthed, ignoring");
       return;
     }
@@ -2727,8 +2465,7 @@ class CmdCallbacks : public NimBLECharacteristicCallbacks
 
     // reload and reset trigger network activity — apply cooldown
     bool fetchCmd = (val == "reload" || val == "reset");
-    if (fetchCmd && millis() - lastBLEFetchMs < BLE_FETCH_COOLDOWN_MS)
-    {
+    if (fetchCmd && millis() - lastBLEFetchMs < BLE_FETCH_COOLDOWN_MS) {
       Serial.println("BLE cmd: cooldown, ignoring");
       return;
     }
@@ -2741,8 +2478,7 @@ class CmdCallbacks : public NimBLECharacteristicCallbacks
   }
 };
 
-static void clearNvsNamespace(const char *ns)
-{
+static void clearNvsNamespace(const char *ns) {
   prefs.begin(ns, false);
   prefs.clear();
   prefs.end();
@@ -2750,8 +2486,7 @@ static void clearNvsNamespace(const char *ns)
 
 // Every user-touchable NVS namespace plus NimBLE's bond store. Add new
 // namespaces here.
-static void wipeAllNvs()
-{
+static void wipeAllNvs() {
   clearNvsNamespace("wifi");
   clearNvsNamespace("apikey");
   clearNvsNamespace("tickers");
@@ -2769,8 +2504,7 @@ static void wipeAllNvs()
 // Shared by the BOOT-button hold and Command=reset: wipe NVS + bonds and
 // reboot; the fresh boot reseeds defaults, generates a new PIN, and lands
 // in setup mode.
-static void factoryReset(const char *source)
-{
+static void factoryReset(const char *source) {
   Serial.printf("%s: factory reset — wiping NVS and rebooting\r\n", source);
   wipeAllNvs();
   delay(100); // let the Serial print drain before restart
@@ -2780,8 +2514,7 @@ static void factoryReset(const char *source)
 // Paint a single reset-countdown digit, centered. Shared by the button hold
 // and the remote countdown so both look identical. static buf: MD_Parola
 // keeps the pointer, so a stack-local would dangle.
-static void showResetDigit(int secondsLeft)
-{
+static void showResetDigit(int secondsLeft) {
   static char buf[4];
   snprintf(buf, sizeof(buf), "%d", secondsLeft);
   display.displayClear();
@@ -2798,8 +2531,7 @@ static bool resetCountdownActive = false;
 static unsigned long resetCountdownStartMs = 0;
 static const char *resetCountdownSource = "";
 
-static void startResetCountdown(const char *source)
-{
+static void startResetCountdown(const char *source) {
   if (resetCountdownActive)
     return; // already counting — ignore re-triggers
   resetCountdownActive = true;
@@ -2811,50 +2543,42 @@ static void startResetCountdown(const char *source)
 
 // Returns true while the countdown owns the display (loop() then skips its own
 // renderers). Calls factoryReset() — which never returns — when it elapses.
-static bool tickResetCountdown()
-{
+static bool tickResetCountdown() {
   static int lastShownSeconds = -1;
   if (!resetCountdownActive)
     return false;
 
   unsigned long elapsed = millis() - resetCountdownStartMs;
-  if (elapsed >= (unsigned long)RESET_COUNTDOWN_SECS * 1000)
-  {
+  if (elapsed >= (unsigned long)RESET_COUNTDOWN_SECS * 1000) {
     factoryReset(resetCountdownSource);
   }
 
   int secondsLeft = RESET_COUNTDOWN_SECS - (int)(elapsed / 1000);
-  if (secondsLeft != lastShownSeconds)
-  {
+  if (secondsLeft != lastShownSeconds) {
     showResetDigit(secondsLeft);
     lastShownSeconds = secondsLeft;
   }
   return true;
 }
 
-void applyPendingCmd()
-{
+void applyPendingCmd() {
   cmdPending = false;
 
-  if (strcmp(pendingCmd, "reload") == 0)
-  {
+  if (strcmp(pendingCmd, "reload") == 0) {
     Serial.println("BLE cmd: reloading stocks/weather/news");
     triggerFetch(true);
   }
-  else if (strcmp(pendingCmd, "reset") == 0)
-  {
+  else if (strcmp(pendingCmd, "reset") == 0) {
     // Deferred behind a visible countdown (shared by BLE and console) so the
     // user can power-cycle to abort; the client just sees the connection drop
     // when it finishes and reboots.
     startResetCountdown("remote");
   }
-  else if (strncmp(pendingCmd, "pin-enforce ", 12) == 0)
-  {
+  else if (strncmp(pendingCmd, "pin-enforce ", 12) == 0) {
     const char *mode = pendingCmd + 12;
     bool on = strcmp(mode, "on") == 0;
     bool off = strcmp(mode, "off") == 0;
-    if (!on && !off)
-    {
+    if (!on && !off) {
       Serial.printf("BLE cmd: unknown pin-enforce mode \"%s\"\r\n", mode);
       return;
     }
@@ -2864,33 +2588,26 @@ void applyPendingCmd()
     // Connected slots keep their authed state — no surprise-kick when
     // enforcement flips on.
   }
-  else if (strncmp(pendingCmd, "timer ", 6) == 0)
-  {
+  else if (strncmp(pendingCmd, "timer ", 6) == 0) {
     const char *arg = pendingCmd + 6;
-    if (strcmp(arg, "cancel") == 0)
-    {
-      if (timerPhase != TIMER_OFF)
-      {
+    if (strcmp(arg, "cancel") == 0) {
+      if (timerPhase != TIMER_OFF) {
         Serial.println("BLE cmd: timer cancel");
         cancelTimer();
       }
     }
-    else
-    {
+    else {
       char *end = nullptr;
       long mins = strtol(arg, &end, 10);
-      if (end == arg || mins < 1 || mins > TIMER_MAX_MINUTES)
-      {
+      if (end == arg || mins < 1 || mins > TIMER_MAX_MINUTES) {
         Serial.printf("BLE cmd: bad timer arg \"%s\"\r\n", arg);
       }
-      else
-      {
+      else {
         startTimer((uint32_t)mins);
       }
     }
   }
-  else
-  {
+  else {
     Serial.printf("BLE cmd: unknown command \"%s\"\r\n", pendingCmd);
   }
 }
@@ -2899,8 +2616,7 @@ void applyPendingCmd()
 // BLE init
 // ----------------------------------------------------------------------------
 
-void initBLE()
-{
+void initBLE() {
   NimBLEDevice::init(bleDeviceName);
   NimBLEDevice::setMTU(512);
   // Passkey-entry bonding (bond + MITM + SC, DISPLAY_ONLY): the phone pops its
@@ -2986,29 +2702,24 @@ unsigned long lastFetch = 0;
 // countdown digit shows; releasing before commit aborts. Returns true
 // while the countdown is on-screen so loop() skips its own render path
 // (which would overwrite the digit next iteration).
-static bool pollResetButton()
-{
+static bool pollResetButton() {
   static unsigned long pressStartMs = 0;
   static int lastShownSeconds = -1;
 
   bool pressed = (digitalRead(BUTTON_PIN) == LOW);
 
-  if (pressed)
-  {
+  if (pressed) {
     if (pressStartMs == 0)
       pressStartMs = millis();
     unsigned long held = millis() - pressStartMs;
 
-    if (held >= RESET_HOLD_MS)
-    {
+    if (held >= RESET_HOLD_MS) {
       factoryReset("button hold");
     }
 
-    if (held >= RESET_HINT_AT_MS)
-    {
+    if (held >= RESET_HINT_AT_MS) {
       int secondsLeft = (RESET_HOLD_MS - held) / 1000 + 1;
-      if (secondsLeft != lastShownSeconds)
-      {
+      if (secondsLeft != lastShownSeconds) {
         showResetDigit(secondsLeft);
         lastShownSeconds = secondsLeft;
       }
@@ -3017,18 +2728,15 @@ static bool pollResetButton()
     return false;
   }
 
-  if (lastShownSeconds >= 0)
-  {
+  if (lastShownSeconds >= 0) {
     // Released mid-hold — restore the normal display. IDLE needs an
     // explicit first-paint flip; other modes repaint via showNext().
     display.displayClear();
     invalidateStatusRender();
-    if (currentMode == MODE_IDLE)
-    {
+    if (currentMode == MODE_IDLE) {
       idleNeedsFirstPaint = true;
     }
-    else
-    {
+    else {
       showNext();
     }
   }
@@ -3040,13 +2748,11 @@ static bool pollResetButton()
 // ESP-IDF/ARDUHAL logs (the "[E][...]" lines) emit a bare '\n'; translate to
 // '\r\n' so raw terminals (Wokwi) don't stair-step. Our own Serial.printf
 // strings already carry '\r\n'.
-static int crlfLogVprintf(const char *fmt, va_list args)
-{
+static int crlfLogVprintf(const char *fmt, va_list args) {
   char buf[256];
   int n = vsnprintf(buf, sizeof(buf), fmt, args);
   int lim = (n < (int)sizeof(buf)) ? n : (int)sizeof(buf) - 1;
-  for (int i = 0; i < lim; i++)
-  {
+  for (int i = 0; i < lim; i++) {
     if (buf[i] == '\n')
       Serial.write('\r');
     Serial.write((uint8_t)buf[i]);
@@ -3058,8 +2764,7 @@ static int crlfLogVprintf(const char *fmt, va_list args)
 // settings must load before initDisplay() so the first frame uses the saved
 // brightness — call this only after initDisplay() for the rest, or split as
 // setup() does.
-static void loadConfigFromNVS()
-{
+static void loadConfigFromNVS() {
   loadWifiFromNVS();
   loadApiKeyFromNVS();
   loadTickersFromNVS();
@@ -3072,8 +2777,7 @@ static void loadConfigFromNVS()
 // Pick the boot mode from the persisted mask: nothing enabled → idle clock;
 // enabled but prereqs unmet (no WiFi / API key) → setup scroll; otherwise the
 // normal content rotation.
-static void enterBootMode()
-{
+static void enterBootMode() {
   if (enabledMask == 0)
     enterIdle();
   else if (!maskPrereqsReady(enabledMask))
@@ -3082,8 +2786,7 @@ static void enterBootMode()
     enterContent();
 }
 
-void setup()
-{
+void setup() {
   Serial.begin(115200);
   // Wait up to 2 s for USB enumeration so the boot banner lands in the
   // monitor; falls through so a headless boot isn't wedged.
@@ -3099,6 +2802,7 @@ void setup()
                                  "PANIC", "INT_WDT", "TASK_WDT", "WDT",
                                  "DEEPSLEEP", "BROWNOUT", "SDIO"};
     esp_reset_reason_t rr = esp_reset_reason();
+
     Serial.printf("[boot] reset reason: %s (%d)\r\n",
                   (rr < (int)(sizeof(kRst) / sizeof(kRst[0]))) ? kRst[rr]
                                                                : "?",
@@ -3144,15 +2848,13 @@ void setup()
 #if CONSOLE_ENABLED
 
 static void consoleSetPending(char *dest, size_t destLen, const char *src,
-                              volatile bool &flag)
-{
+                              volatile bool &flag) {
   strncpy(dest, src, destLen - 1);
   dest[destLen - 1] = '\0';
   flag = true;
 }
 
-static void consolePrintInfo()
-{
+static void consolePrintInfo() {
   Serial.printf("fw=v%s mode=%d mask=0x%02X\r\n", FW_VERSION, currentMode,
                 enabledMask);
   bool up = WiFi.isConnected();
@@ -3166,10 +2868,8 @@ static void consolePrintInfo()
 
 static void consolePrintHelp() { Serial.println(consoleHelpText()); }
 
-static void dispatchConsoleCmd(const ConsoleCmd &cmd)
-{
-  switch (cmd.verb)
-  {
+static void dispatchConsoleCmd(const ConsoleCmd &cmd) {
+  switch (cmd.verb) {
   case CONSOLE_NONE:
     return;
   case CONSOLE_UNKNOWN:
@@ -3182,18 +2882,15 @@ static void dispatchConsoleCmd(const ConsoleCmd &cmd)
     consolePrintInfo();
     return;
 
-  case CONSOLE_WIFI:
-  {
+  case CONSOLE_WIFI: {
     // "wifi <ssid>" = open network (empty password, e.g. Wokwi-GUEST);
     // "wifi <ssid> <pass>" = secured. consoleBuildWifiPayload does the split.
-    if (cmd.arg[0] == '\0')
-    {
+    if (cmd.arg[0] == '\0') {
       Serial.println("usage: wifi <ssid> [pass]");
       return;
     }
     char joined[BLE_WIFI_BUF_LEN];
-    if (!consoleBuildWifiPayload(cmd.arg, joined, sizeof(joined)))
-    {
+    if (!consoleBuildWifiPayload(cmd.arg, joined, sizeof(joined))) {
       Serial.println("error: ssid too long");
       return;
     }
@@ -3222,14 +2919,12 @@ static void dispatchConsoleCmd(const ConsoleCmd &cmd)
                       modeUpdatePending);
     Serial.println("ok: mode");
     return;
-  case CONSOLE_SIGN:
-  {
+  case CONSOLE_SIGN: {
     // applyPendingStatus() expects "text|seconds" (0 = indefinite); console
     // signs are indefinite. Empty text ("sign" with no arg) clears the sign.
     char buf[BLE_STATUS_BUF_LEN];
     int n = snprintf(buf, sizeof(buf), "%s|0", cmd.arg);
-    if (n < 0 || n >= (int)sizeof(buf))
-    {
+    if (n < 0 || n >= (int)sizeof(buf)) {
       Serial.println("error: sign text too long");
       return;
     }
@@ -3249,13 +2944,11 @@ static void dispatchConsoleCmd(const ConsoleCmd &cmd)
     Serial.println("ok: tz");
     return;
 
-  case CONSOLE_BRIGHT:
-  {
+  case CONSOLE_BRIGHT: {
     // applyPendingDisplayCfg() expects "bright|scroll"; keep current scroll.
     char buf[sizeof(pendingDisplayCfgStr)];
     int n = snprintf(buf, sizeof(buf), "%s|%u", cmd.arg, (unsigned)scrollSpeedMs);
-    if (n < 0 || n >= (int)sizeof(buf))
-    {
+    if (n < 0 || n >= (int)sizeof(buf)) {
       Serial.println("error: bright arg too long");
       return;
     }
@@ -3264,12 +2957,10 @@ static void dispatchConsoleCmd(const ConsoleCmd &cmd)
     Serial.println("ok: bright");
     return;
   }
-  case CONSOLE_SCROLL:
-  {
+  case CONSOLE_SCROLL: {
     char buf[sizeof(pendingDisplayCfgStr)];
     int n = snprintf(buf, sizeof(buf), "%u|%s", displayBrightness, cmd.arg);
-    if (n < 0 || n >= (int)sizeof(buf))
-    {
+    if (n < 0 || n >= (int)sizeof(buf)) {
       Serial.println("error: scroll arg too long");
       return;
     }
@@ -3280,12 +2971,10 @@ static void dispatchConsoleCmd(const ConsoleCmd &cmd)
   }
 
   // Command-style verbs route through pendingCmd (16-byte buffer).
-  case CONSOLE_TIMER:
-  {
+  case CONSOLE_TIMER: {
     char buf[sizeof(pendingCmd)];
     int n = snprintf(buf, sizeof(buf), "timer %s", cmd.arg);
-    if (n < 0 || n >= (int)sizeof(buf))
-    {
+    if (n < 0 || n >= (int)sizeof(buf)) {
       Serial.println("error: timer arg too long");
       return;
     }
@@ -3293,12 +2982,10 @@ static void dispatchConsoleCmd(const ConsoleCmd &cmd)
     Serial.println("ok: timer");
     return;
   }
-  case CONSOLE_PINENFORCE:
-  {
+  case CONSOLE_PINENFORCE: {
     char buf[sizeof(pendingCmd)];
     int n = snprintf(buf, sizeof(buf), "pin-enforce %s", cmd.arg);
-    if (n < 0 || n >= (int)sizeof(buf))
-    {
+    if (n < 0 || n >= (int)sizeof(buf)) {
       Serial.println("error: pin-enforce arg too long");
       return;
     }
@@ -3321,53 +3008,43 @@ static void dispatchConsoleCmd(const ConsoleCmd &cmd)
 
 // Non-blocking: accumulate one line, then parse + dispatch. Buffer sized to the
 // largest payload (locations CSV) plus the verb word and separators.
-void pollSerialConsole()
-{
+void pollSerialConsole() {
 #if CONSOLE_ENABLED
   static char line[BLE_LOCS_BUF_LEN + 32];
   static size_t len = 0;
   static bool overflow = false;
-  while (Serial.available())
-  {
+  while (Serial.available()) {
     char c = (char)Serial.read();
-    if (c == '\n' || c == '\r')
-    {
+    if (c == '\n' || c == '\r') {
       // len == 0 here is a blank line or the paired \n of a \r\n — swallow it
       // (no echo) so a \r\n terminator doesn't print two newlines.
-      if (overflow)
-      {
+      if (overflow) {
         Serial.println();
         Serial.println("error: line too long");
         overflow = false;
         len = 0;
       }
-      else if (len > 0)
-      {
+      else if (len > 0) {
         Serial.println(); // echo the newline before printing the response
         line[len] = '\0';
         dispatchConsoleCmd(parseConsoleLine(line));
         len = 0;
       }
     }
-    else if (c == '\b' || c == 0x7f)
-    { // backspace / DEL: erase last char
-      if (!overflow && len > 0)
-      {
+    else if (c == '\b' || c == 0x7f) { // backspace / DEL: erase last char
+      if (!overflow && len > 0) {
         len--;
         Serial.print("\b \b");
       }
     }
-    else if (overflow)
-    {
+    else if (overflow) {
       continue; // swallow the rest of an over-long line
     }
-    else if (len < sizeof(line) - 1)
-    {
+    else if (len < sizeof(line) - 1) {
       line[len++] = c;
       Serial.write(c); // local echo so the user sees what they type
     }
-    else
-    {
+    else {
       overflow = true;
     }
   }
@@ -3376,8 +3053,7 @@ void pollSerialConsole()
 
 // Periodic liveness line: matrix frozen but heartbeats coming → SPI/Parola
 // stuck; heartbeats stopped → whole loop hung.
-static void heartbeat(unsigned long nowMs)
-{
+static void heartbeat(unsigned long nowMs) {
   static unsigned long lastHeartbeatMs = 0;
   if (nowMs - lastHeartbeatMs <= 30000)
     return;
@@ -3390,8 +3066,7 @@ static void heartbeat(unsigned long nowMs)
 
 // Drain the deferred-apply flags set by BLE callbacks (Core 0) and the serial
 // console. Each applyPending*() does the heavy work the callback deferred.
-static void applyPendingUpdates()
-{
+static void applyPendingUpdates() {
   if (wifiUpdatePending)
     applyPendingWifi();
   if (apiKeyUpdatePending)
@@ -3417,60 +3092,48 @@ static void applyPendingUpdates()
 // Render one frame for the currently active layer, in priority order: timer >
 // sign > idle clock > static clock > ambient rotation. Caller has already
 // handled the reset countdown and displayOff cases that own the display.
-static void renderActiveFrame()
-{
-  if (timerPhase != TIMER_OFF)
-  {
+static void renderActiveFrame() {
+  if (timerPhase != TIMER_OFF) {
     tickTimer();
   }
-  else if (checkStatusForRender())
-  {
+  else if (checkStatusForRender()) {
     tickActiveStatus();
   }
-  else if (currentMode == MODE_IDLE)
-  {
+  else if (currentMode == MODE_IDLE) {
     tickIdle();
   }
   else if (currentMode == MODE_CONTENT && enabledMask == BIT_CLOCK &&
-           timeReady)
-  {
+           timeReady) {
     tickStaticClock();
   }
-  else if (awaitingNewsPause)
-  {
-    if (millis() >= newsPauseEnd)
-    {
+  else if (awaitingNewsPause) {
+    if (millis() >= newsPauseEnd) {
       awaitingNewsPause = false;
       display.displayReset();
       showNext();
     }
   }
-  else if (display.displayAnimate())
-  {
-    if (currentBit == BIT_NEWS && newsCount > 0)
-    {
+  else if (display.displayAnimate()) {
+    if (currentBit == BIT_NEWS && newsCount > 0) {
       display.displayClear();
       awaitingNewsPause = true;
       newsPauseEnd = millis() + NEWS_PAUSE_MS;
     }
-    else
-    {
+    else {
       display.displayReset();
       showNext();
     }
   }
 }
 
-void loop()
-{
+void loop() {
   heartbeat(millis());
 
   pollSerialConsole(); // serial console feeds the same pending* flags
   applyPendingUpdates();
 
   updateStatusLed();
-  if (pollResetButton() || tickResetCountdown())
-  {
+  if (pollResetButton() || tickResetCountdown()) {
     // A reset countdown (button hold or remote command) owns the display this
     // tick — skip the renderers.
     delay(1);
@@ -3478,24 +3141,20 @@ void loop()
   }
 
   if (currentMode == MODE_SETUP &&
-      millis() - setupLastActivityMs > SETUP_TIMEOUT_MS)
-  {
-    if (wifiConfigured())
-    {
+      millis() - setupLastActivityMs > SETUP_TIMEOUT_MS) {
+    if (wifiConfigured()) {
       Serial.println(
           "Setup: 60s no activity, falling to content (mask unchanged)");
       enterContent();
     }
-    else
-    {
+    else {
       // No WiFi → every category is dead; staying on the name scroll beats
       // a "Loading X..." loop. Reschedule the timeout check.
       setupLastActivityMs = millis();
     }
   }
 
-  if (displayOff)
-  {
+  if (displayOff) {
     // Display is off: skip all render AND fetch work.
     delay(100);
     return;
@@ -3503,8 +3162,7 @@ void loop()
 
   renderActiveFrame();
 
-  if (millis() - lastFetch > FETCH_INTERVAL_MS)
-  {
+  if (millis() - lastFetch > FETCH_INTERVAL_MS) {
     lastFetch = millis();
     triggerFetch();
   }
