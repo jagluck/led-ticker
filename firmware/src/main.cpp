@@ -95,8 +95,8 @@ Preferences prefs;
 // with entry stride `entryLen`. Load seeds from defaults when NVS is empty
 // or out of range, and returns the resulting count.
 
-static void saveStringListToNVS(const char* ns, const char* keyPrefix,
-                                const char* list, int entryLen, int count) {
+static void saveStringListToNVS(const char* ns, const char* keyPrefix, const char* list,
+                                int entryLen, int count) {
   prefs.begin(ns, false);
   prefs.putInt("count", count);
   for (int i = 0; i < count; i++) {
@@ -107,9 +107,8 @@ static void saveStringListToNVS(const char* ns, const char* keyPrefix,
   prefs.end();
 }
 
-static int loadStringListFromNVS(const char* ns, const char* keyPrefix,
-                                 char* list, int entryLen, int maxCount,
-                                 const char* const* defaults, int defaultCount,
+static int loadStringListFromNVS(const char* ns, const char* keyPrefix, char* list, int entryLen,
+                                 int maxCount, const char* const* defaults, int defaultCount,
                                  const char* what) {
   prefs.begin(ns, true);
   int count = prefs.getInt("count", 0);
@@ -239,8 +238,7 @@ void loadPinFromNVS() {
     // Default to enforcing if the "on" key was never written (e.g. namespace
     // existed from an earlier build that only stored "code").
     nvsPinEnforce = prefs.getBool("on", true);
-    Serial.printf("Loaded BLE auth PIN from NVS: %s (enforce=%d)\r\n", nvsPin,
-                  nvsPinEnforce);
+    Serial.printf("Loaded BLE auth PIN from NVS: %s (enforce=%d)\r\n", nvsPin, nvsPinEnforce);
   } else {
     nvsPin[0] = '\0';
     nvsPinEnforce = true;
@@ -277,14 +275,12 @@ int stockCount = 0;
 int currentStock = 0;
 
 void saveTickersToNVS() {
-  saveStringListToNVS("tickers", "t", &nvsTickers[0][0], MAX_TICKER_LEN,
-                      nvsTickerCount);
+  saveStringListToNVS("tickers", "t", &nvsTickers[0][0], MAX_TICKER_LEN, nvsTickerCount);
 }
 
 void loadTickersFromNVS() {
-  nvsTickerCount = loadStringListFromNVS(
-      "tickers", "t", &nvsTickers[0][0], MAX_TICKER_LEN, MAX_STOCKS,
-      stockTickers, stockTickerCount, "tickers");
+  nvsTickerCount = loadStringListFromNVS("tickers", "t", &nvsTickers[0][0], MAX_TICKER_LEN,
+                                         MAX_STOCKS, stockTickers, stockTickerCount, "tickers");
 }
 
 // ============================================================================
@@ -292,6 +288,7 @@ void loadTickersFromNVS() {
 // ============================================================================
 
 #define MAX_LOCATIONS 5
+#define MAX_NEWS 20
 // MAX_LOCATION_LEN, MAX_LOC_NAME_LEN, the ResolvedLocation struct, and
 // parseLocation() live in logic.h/.cpp (host-tested).
 
@@ -318,15 +315,26 @@ WeatherReading weatherReadings[MAX_LOCATIONS];
 int weatherCount = 0;
 int currentWeather = 0;
 
+#define MAX_NEWS_LEN 96
+struct NewsReading {
+  char name[MAX_LOC_NAME_LEN];
+  char text[MAX_NEWS_LEN];
+};
+
+NewsReading newsReadings[MAX_NEWS];
+int newsCount = 0;
+int currentNews = 0;
+static bool awaitingNewsPause = false;
+static uint32_t newsPauseEnd = 0;
+
 void saveLocationsToNVS() {
-  saveStringListToNVS("locs", "l", &nvsLocations[0][0], MAX_LOCATION_LEN,
-                      nvsLocationCount);
+  saveStringListToNVS("locs", "l", &nvsLocations[0][0], MAX_LOCATION_LEN, nvsLocationCount);
 }
 
 void loadLocationsFromNVS() {
-  nvsLocationCount = loadStringListFromNVS(
-      "locs", "l", &nvsLocations[0][0], MAX_LOCATION_LEN, MAX_LOCATIONS,
-      defaultLocations, defaultLocationCount, "locations");
+  nvsLocationCount =
+      loadStringListFromNVS("locs", "l", &nvsLocations[0][0], MAX_LOCATION_LEN, MAX_LOCATIONS,
+                            defaultLocations, defaultLocationCount, "locations");
   reparseLocations();
 }
 
@@ -374,8 +382,8 @@ void loadDisplaySettingsFromNVS() {
   displayBrightness = prefs.getUChar("bright", DISPLAY_INTENSITY);
   scrollSpeedMs = prefs.getUShort("scroll", SCROLL_SPEED);
   prefs.end();
-  Serial.printf("Display settings: brightness=%u scroll=%ums\r\n",
-                displayBrightness, (unsigned)scrollSpeedMs);
+  Serial.printf("Display settings: brightness=%u scroll=%ums\r\n", displayBrightness,
+                (unsigned)scrollSpeedMs);
 }
 
 // ============================================================================
@@ -445,7 +453,7 @@ void clearStatus() {
 MD_Parola display = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
 
 // MD_Parola stores the pointer passed to displayScroll, not a copy.
-// Shared across all scrolling content (stocks/weather/clock/status/setup) —
+// Shared across all scrolling content (stocks/weather/news/clock/status/setup) —
 // only one is ever active, and we overwrite only when starting the next scroll.
 static char scrollBuf[MAX_STRING_LEN + 1];
 
@@ -469,9 +477,7 @@ static char scrollBuf[MAX_STRING_LEN + 1];
 // font-select verb has something to switch to; staticFace is the single point
 // it would flip (read an NVS key, reassign, re-parse). Today it's a constant.
 static const MD_MAX72XX::fontType_t* staticFace = PRESSSTART_FONT;
-static void useStaticFont() {
-  display.setFont(const_cast<MD_MAX72XX::fontType_t*>(staticFace));
-}
+static void useStaticFont() { display.setFont(const_cast<MD_MAX72XX::fontType_t*>(staticFace)); }
 static void useScrollFont() {
   display.setFont(nullptr);  // built-in system font
 }
@@ -504,11 +510,11 @@ void initDisplay() {
 // copy, so it must outlive the scroll; a self-copy (callers passing scrollBuf)
 // is safe since dst and src index in lockstep. Only ASCII a-z folds — the
 // degree symbol and arrows (high-bit bytes) pass through untouched.
-void scrollTextAt(const char* msg, uint16_t speedMs) {
+void scrollTextAt(const char* msg, uint16_t speedMs, bool preserveCase = false) {
   size_t i = 0;
   for (; msg[i] && i < sizeof(scrollBuf) - 1; i++) {
     char c = msg[i];
-    scrollBuf[i] = (c >= 'a' && c <= 'z') ? c - 'a' + 'A' : c;
+    scrollBuf[i] = (!preserveCase && c >= 'a' && c <= 'z') ? c - 'a' + 'A' : c;
   }
   scrollBuf[i] = '\0';
   useScrollFont();
@@ -568,8 +574,8 @@ void initTime() {
     struct tm t;
     if (getLocalTime(&t, 100)) {
       timeReady = true;
-      Serial.printf("Time: %04d-%02d-%02d %02d:%02d local\r\n", t.tm_year + 1900,
-                    t.tm_mon + 1, t.tm_mday, t.tm_hour, t.tm_min);
+      Serial.printf("Time: %04d-%02d-%02d %02d:%02d local\r\n", t.tm_year + 1900, t.tm_mon + 1,
+                    t.tm_mday, t.tm_hour, t.tm_min);
       return;
     }
     delay(500);
@@ -588,11 +594,12 @@ bool isMarketOpen() {
 }
 
 // ============================================================================
-// Network fetch (stocks + weather)
+// Network fetch (stocks + weather + news)
 // ============================================================================
 // fetchTask runs on Core 0 alongside the WiFi/BLE stack. loop() on Core 1
-// triggers it via xTaskNotify; the task sets the `fetching` flag, hits both
-// APIs in sequence, then clears it. commitStocks/Weather take dataMutex to
+// triggers it via xTaskNotify; the task sets the `fetching` flag, hits the
+// enabled APIs in sequence, then clears it. commitStocks/Weather/News take
+// dataMutex to
 // hand off into the in-RAM arrays read by the display renderers on Core 1.
 
 #define FETCH_TASK_STACK 8192
@@ -618,8 +625,7 @@ static void fetchStocksImpl(bool force) {
   // retries on the next tick instead of silently missing the close.
   static bool marketWasOpen = false;
   bool marketOpen = isMarketOpen();
-  if (!shouldFetchStocks(force, marketOpen, stockCount > 0, marketWasOpen))
-    return;
+  if (!shouldFetchStocks(force, marketOpen, stockCount > 0, marketWasOpen)) return;
 
   StockQuote tmp[MAX_STOCKS];
   int count = 0;
@@ -637,9 +643,8 @@ static void fetchStocksImpl(bool force) {
 
   for (int i = 0; i < nvsTickerCount && count < MAX_STOCKS; i++) {
     char url[256];
-    snprintf(url, sizeof(url),
-             "https://finnhub.io/api/v1/quote?symbol=%s&token=%s",
-             nvsTickers[i], nvsApiKey);
+    snprintf(url, sizeof(url), "https://finnhub.io/api/v1/quote?symbol=%s&token=%s", nvsTickers[i],
+             nvsApiKey);
 
     http.begin(client, url);
 
@@ -656,8 +661,7 @@ static void fetchStocksImpl(bool force) {
     JsonDocument doc;
     DeserializationError err = deserializeJson(doc, body);
     if (err) {
-      Serial.printf("Stock JSON parse error: %s for %s\r\n", err.c_str(),
-                    nvsTickers[i]);
+      Serial.printf("Stock JSON parse error: %s for %s\r\n", err.c_str(), nvsTickers[i]);
       continue;
     }
 
@@ -690,6 +694,14 @@ static void commitWeather(const WeatherReading* tmp, int count) {
   xSemaphoreGive(dataMutex);
 }
 
+static void commitNews(const NewsReading* tmp, int count) {
+  xSemaphoreTake(dataMutex, portMAX_DELAY);
+  for (int i = 0; i < count; i++) newsReadings[i] = tmp[i];
+  newsCount = count;
+  currentNews = 0;
+  xSemaphoreGive(dataMutex);
+}
+
 static void fetchWeatherImpl(bool force) {
   if (WiFi.status() != WL_CONNECTED || nvsLocationCount == 0) return;
 
@@ -697,9 +709,7 @@ static void fetchWeatherImpl(bool force) {
   // force (config change) and cold boot (no data yet) bypass the throttle;
   // a fully failed fetch leaves weatherCount at 0 so the next tick retries.
   static unsigned long lastWeatherFetchMs = 0;
-  if (!force && weatherCount > 0 &&
-      millis() - lastWeatherFetchMs < WEATHER_INTERVAL_MS)
-    return;
+  if (!force && weatherCount > 0 && millis() - lastWeatherFetchMs < WEATHER_INTERVAL_MS) return;
   lastWeatherFetchMs = millis();
 
   HTTPClient http;
@@ -736,22 +746,20 @@ static void fetchWeatherImpl(bool force) {
     // The response carries ~90 timesteps; filter to just the current instant's
     // temperature so the parse stays small.
     JsonDocument filter;
-    filter["properties"]["timeseries"][0]["data"]["instant"]["details"]
-          ["air_temperature"] = true;
+    filter["properties"]["timeseries"][0]["data"]["instant"]["details"]["air_temperature"] = true;
     JsonDocument doc;
-    DeserializationError err = deserializeJson(
-        doc, http.getStream(), DeserializationOption::Filter(filter));
+    DeserializationError err =
+        deserializeJson(doc, http.getStream(), DeserializationOption::Filter(filter));
     http.end();
     if (err) {
-      Serial.printf("Weather JSON parse error: %s for %s\r\n", err.c_str(),
-                    resolved[i].name);
+      Serial.printf("Weather JSON parse error: %s for %s\r\n", err.c_str(), resolved[i].name);
       continue;
     }
 
     // timeseries[0] is the current instant (not a forecast period). MET reports
     // °C; the display works in °F.
-    JsonVariant tempC = doc["properties"]["timeseries"][0]["data"]["instant"]
-                           ["details"]["air_temperature"];
+    JsonVariant tempC =
+        doc["properties"]["timeseries"][0]["data"]["instant"]["details"]["air_temperature"];
     if (tempC.isNull()) {
       Serial.printf("Weather: no temperature for %s\r\n", resolved[i].name);
       continue;
@@ -769,6 +777,96 @@ static void fetchWeatherImpl(bool force) {
   }
 }
 
+static void decodeHtmlEntities(char* s) {
+  static const struct {
+    const char* entity;
+    size_t len;
+    char ch;
+  } kEntities[] = {
+      {"&apos;", sizeof("&apos;") - 1, '\''}, {"&quot;", sizeof("&quot;") - 1, '"'},
+      {"&amp;", sizeof("&amp;") - 1, '&'},    {"&lt;", sizeof("&lt;") - 1, '<'},
+      {"&gt;", sizeof("&gt;") - 1, '>'},      {"&#39;", sizeof("&#39;") - 1, '\''},
+  };
+  char* w = s;
+  for (const char* r = s; *r;) {
+    bool matched = false;
+    for (auto& e : kEntities) {
+      if (strncmp(r, e.entity, e.len) == 0) {
+        *w++ = e.ch;
+        r += e.len;
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) *w++ = *r++;
+  }
+  *w = '\0';
+}
+
+static void fetchNewsImpl(bool force) {
+  static unsigned long lastNewsFetchMs = 0;
+  if (!force && newsCount > 0 && millis() - lastNewsFetchMs < WEATHER_INTERVAL_MS) return;
+  lastNewsFetchMs = millis();
+
+  NewsReading tmp[MAX_NEWS];
+  int count = 0;
+
+  // Fetch live RSS feed from NPR
+  if (WiFi.status() != WL_CONNECTED) return;
+
+  HTTPClient http;
+  http.setConnectTimeout(5000);
+  http.setTimeout(5000);
+
+  http.begin("https://feeds.npr.org/1001/rss.xml");
+  int code = http.GET();
+  if (code != 200) {
+    Serial.printf("RSS HTTP error: %d\r\n", code);
+    http.end();
+    return;
+  }
+
+  String rssContent = http.getString();
+  http.end();
+  const char* rssData = rssContent.c_str();
+
+  // === RSS PARSER: Works with either source ===
+  // Find <item> then <title>...</title> handling whitespace
+  const char* pos = rssData;
+  while (count < MAX_NEWS && (pos = strstr(pos, "<item>")) != nullptr) {
+    pos += 6;  // skip "<item>"
+
+    // Find <title> after <item>
+    const char* titleStart = strstr(pos, "<title>");
+    if (!titleStart) break;
+    titleStart += 7;  // skip "<title>"
+
+    // Find </title>
+    const char* titleEnd = strstr(titleStart, "</title>");
+    if (!titleEnd) break;
+
+    size_t len = titleEnd - titleStart;
+    if (len >= MAX_NEWS_LEN) len = MAX_NEWS_LEN - 1;
+
+    strncpy(tmp[count].name, "", MAX_LOC_NAME_LEN - 1);
+    tmp[count].name[0] = '\0';  // No prefix, just titles
+
+    strncpy(tmp[count].text, titleStart, len);
+    tmp[count].text[len] = '\0';
+    decodeHtmlEntities(tmp[count].text);
+
+    pos = titleEnd;
+    count++;
+  }
+
+  if (count > 0) {
+    commitNews(tmp, count);
+    Serial.printf("Loaded %d news entries from RSS\r\n", count);
+  } else {
+    Serial.println("RSS parse: no entries found");
+  }
+}
+
 static void fetchTask(void*) {
   while (true) {
     uint32_t forceVal;
@@ -779,13 +877,13 @@ static void fetchTask(void*) {
     if (enabledMask == 0) continue;
     fetching = true;
     unsigned long t0 = millis();
-    Serial.printf("[fetch] start mask=0x%02X force=%lu\r\n", enabledMask,
-                  (unsigned long)forceVal);
+    Serial.printf("[fetch] start mask=0x%02X force=%lu\r\n", enabledMask, (unsigned long)forceVal);
     // Only fetch categories the mask enables — no point spending API quota on
     // data that won't be shown. Toggling a category on triggers a forced fetch
     // (applyPendingMode), so the newly-enabled category warms immediately.
     if (enabledMask & BIT_STOCKS) fetchStocksImpl((bool)forceVal);
     if (enabledMask & BIT_WEATHER) fetchWeatherImpl((bool)forceVal);
+    if (enabledMask & BIT_NEWS) fetchNewsImpl((bool)forceVal);
     Serial.printf("[fetch] end took=%lums\r\n", millis() - t0);
     fetching = false;
   }
@@ -805,8 +903,7 @@ void connectWifi() {
   Serial.printf("Connecting to %s...\r\n", nvsWifiSsid);
   WiFi.begin(nvsWifiSsid, nvsWifiPass);
 
-  for (int attempts = 0; WiFi.status() != WL_CONNECTED && attempts < 20;
-       attempts++) {
+  for (int attempts = 0; WiFi.status() != WL_CONNECTED && attempts < 20; attempts++) {
     delay(500);
   }
 
@@ -828,8 +925,8 @@ void connectWifi() {
 int currentMode = MODE_CONTENT;
 
 // Which category bit is currently scrolling within MODE_CONTENT. Always one
-// of BIT_STOCKS / BIT_WEATHER / BIT_CLOCK. Advances when the active category
-// wraps so each enabled category gets a full pass per cycle.
+// of BIT_STOCKS / BIT_WEATHER / BIT_NEWS / BIT_CLOCK. Advances when the active
+// category wraps so each enabled category gets a full pass per cycle.
 uint8_t currentBit = BIT_STOCKS;
 
 // --- Per-category renderers ---
@@ -842,8 +939,7 @@ void showNextStock() {
   xSemaphoreGive(dataMutex);
 
   const char* arrow = q.changePct >= 0 ? "\x18" : "\x19";
-  snprintf(scrollBuf, sizeof(scrollBuf), "%s $%.2f %s", q.symbol, q.price,
-           arrow);
+  snprintf(scrollBuf, sizeof(scrollBuf), "%s $%.2f %s", q.symbol, q.price, arrow);
   scrollText(scrollBuf);
 }
 
@@ -859,6 +955,17 @@ void showNextWeather() {
            "F",
            w.name, w.tempF);
   scrollText(scrollBuf);
+}
+
+void showNextNews() {
+  NewsReading n;
+  xSemaphoreTake(dataMutex, portMAX_DELAY);
+  n = newsReadings[currentNews];
+  currentNews = (currentNews + 1) % newsCount;
+  xSemaphoreGive(dataMutex);
+
+  snprintf(scrollBuf, sizeof(scrollBuf), "*  %s  *", n.text);
+  scrollTextAt(scrollBuf, scrollSpeedMs, true);
 }
 
 // 24-hour HH:MM. Used by the scrolling rotation when BIT_CLOCK shares the mask
@@ -945,15 +1052,15 @@ void tickIdle() {
 
 // --- Category rotation helpers ---
 
-static bool stocksAvailable() {
-  return wifiConfigured() && apiKeyConfigured() && stockCount > 0;
-}
+static bool stocksAvailable() { return wifiConfigured() && apiKeyConfigured() && stockCount > 0; }
 
 static bool weatherAvailable() { return wifiConfigured() && weatherCount > 0; }
+static bool newsAvailable() { return newsCount > 0; }  // WiFi check removed for testing
 
 static bool bitHasData(uint8_t b) {
   if (b == BIT_STOCKS) return stocksAvailable();
   if (b == BIT_WEATHER) return weatherAvailable();
+  if (b == BIT_NEWS) return newsAvailable();
   if (b == BIT_CLOCK) return timeReady;  // NTP must have synced at least once
   return false;
 }
@@ -962,13 +1069,15 @@ static bool bitHasData(uint8_t b) {
 // bit has data, leave currentBit unchanged so showNext can show a loading hint.
 static void advanceCategory() {
   uint8_t start = currentBit;
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 4; i++) {
     currentBit = nextBit(currentBit);
     if ((enabledMask & currentBit) && bitHasData(currentBit)) {
       if (currentBit == BIT_STOCKS)
         currentStock = 0;
       else if (currentBit == BIT_WEATHER)
         currentWeather = 0;
+      else if (currentBit == BIT_NEWS)
+        currentNews = 0;
       // BIT_CLOCK has no per-item counter — one item per pass.
       return;
     }
@@ -977,7 +1086,7 @@ static void advanceCategory() {
 }
 
 static uint8_t firstActiveBit() {
-  const uint8_t order[] = {BIT_STOCKS, BIT_WEATHER, BIT_CLOCK};
+  const uint8_t order[] = {BIT_STOCKS, BIT_WEATHER, BIT_NEWS, BIT_CLOCK};
   for (uint8_t b : order)
     if ((enabledMask & b) && bitHasData(b)) return b;
   for (uint8_t b : order)
@@ -1007,15 +1116,16 @@ void enterContent() {
   currentMode = MODE_CONTENT;
   currentStock = 0;
   currentWeather = 0;
+  currentNews = 0;
   currentBit = firstActiveBit();
   display.setIntensity(displayBrightness);
   resetDisplay();
 }
 
 bool maskPrereqsReady(uint8_t mask) {
-  if ((mask & BIT_STOCKS) && (!wifiConfigured() || !apiKeyConfigured()))
-    return false;
+  if ((mask & BIT_STOCKS) && (!wifiConfigured() || !apiKeyConfigured())) return false;
   if ((mask & BIT_WEATHER) && !wifiConfigured()) return false;
+  // News WiFi check removed for hardcoded testing
   if ((mask & BIT_CLOCK) && !wifiConfigured()) return false;
   return true;
 }
@@ -1073,8 +1183,8 @@ void showNextSetup() {
   static char lastBuiltPin[PIN_LEN + 1] = {0};
   if (strncmp(lastBuiltPin, nvsPin, sizeof(lastBuiltPin)) != 0) {
     if (nvsPin[0]) {
-      snprintf(buf, sizeof(buf), "%s  v%s  PIN %.3s %.3s", bleDeviceName,
-               FW_VERSION, nvsPin, nvsPin + 3);
+      snprintf(buf, sizeof(buf), "%s  v%s  PIN %.3s %.3s", bleDeviceName, FW_VERSION, nvsPin,
+               nvsPin + 3);
     } else {
       snprintf(buf, sizeof(buf), "%s  v%s", bleDeviceName, FW_VERSION);
     }
@@ -1106,6 +1216,8 @@ void showNext() {
         scrollText("Loading stocks...");
       else if (currentBit == BIT_WEATHER)
         scrollText("Loading weather...");
+      else if (currentBit == BIT_NEWS)
+        scrollText("Loading news...");
       else if (currentBit == BIT_CLOCK)
         scrollText("Loading time...");
       return;
@@ -1118,6 +1230,9 @@ void showNext() {
   } else if (currentBit == BIT_WEATHER) {
     showNextWeather();
     if (currentWeather == 0) advanceCategory();
+  } else if (currentBit == BIT_NEWS) {
+    showNextNews();
+    if (currentNews == 0) advanceCategory();
   } else if (currentBit == BIT_CLOCK) {
     showNextClock();
     advanceCategory();  // one item per pass — always rotate after showing
@@ -1186,16 +1301,14 @@ void tickActiveStatus() {
       scrollText(scrollBuf);
     } else {
       useStaticFont();
-      display.displayText(activeStatusText, PA_CENTER, 0, 0, PA_PRINT,
-                          PA_NO_EFFECT);
+      display.displayText(activeStatusText, PA_CENTER, 0, 0, PA_PRINT, PA_NO_EFFECT);
       display.displayAnimate();
     }
   }
 
   if (statusShownIsScroll) {
     // Scroll path: pump the animation and loop.
-    if (display.displayAnimate())
-      display.displayReset();
+    if (display.displayAnimate()) display.displayReset();
   }
   // Static path: nothing to do — steady display already drawn.
 }
@@ -1257,8 +1370,7 @@ static void drawDebris(MD_MAX72XX* mx, int dist) {
   for (int i = 0; i < 4; i++) {
     int px = ANIM_CENTER_COL + dx[i] * dist;
     int py = ANIM_CENTER_ROW + dy[i] * dist;
-    if (px >= 0 && px <= IDLE_COL_MAX && py >= 0 && py <= IDLE_ROW_MAX)
-      mx->setPoint(py, px, true);
+    if (px >= 0 && px <= IDLE_COL_MAX && py >= 0 && py <= IDLE_ROW_MAX) mx->setPoint(py, px, true);
   }
 }
 
@@ -1276,8 +1388,7 @@ static void drawExplosion(MD_MAX72XX* mx, int f) {
   int lastBlastStart = EXPLOSION_FRAMES - 1 - EXPLOSION_MAX_R;
   if (lastBlastStart < 0) lastBlastStart = 0;
 
-  for (int start = 0; start <= f && start <= lastBlastStart;
-       start += EXPLOSION_CADENCE) {
+  for (int start = 0; start <= f && start <= lastBlastStart; start += EXPLOSION_CADENCE) {
     int age = f - start;
     if (age == 0) {  // detonation: bright filled core + panel flash
       drawDiamondFill(mx, 3);
@@ -1292,8 +1403,7 @@ static void drawExplosion(MD_MAX72XX* mx, int f) {
     }
   }
 
-  display.setIntensity(detonating ? EXPLOSION_FLASH_INTENSITY
-                                  : displayBrightness);
+  display.setIntensity(detonating ? EXPLOSION_FLASH_INTENSITY : displayBrightness);
 }
 
 // End-animation pump. Frame-stepped via millis() like tickIdle() — no delay().
@@ -1417,8 +1527,7 @@ static AuthSlot authSlots[AUTH_MAX_CONNS];
 
 static AuthSlot* findSlot(uint16_t handle) {
   for (int i = 0; i < AUTH_MAX_CONNS; i++) {
-    if (authSlots[i].inUse && authSlots[i].handle == handle)
-      return &authSlots[i];
+    if (authSlots[i].inUse && authSlots[i].handle == handle) return &authSlots[i];
   }
   return nullptr;
 }
@@ -1446,9 +1555,8 @@ bool isConnAuthed(uint16_t handle) {
 class ServerCallbacks : public NimBLEServerCallbacks {
   void onConnect(NimBLEServer*, ble_gap_conn_desc* desc) override {
     AuthSlot* s = allocSlot(desc->conn_handle);
-    Serial.printf("BLE: client connected (handle=%u, slot=%s, encrypted=%d)\r\n",
-                  desc->conn_handle, s ? "ok" : "FULL",
-                  desc->sec_state.encrypted);
+    Serial.printf("BLE: client connected (handle=%u, slot=%s, encrypted=%d)\r\n", desc->conn_handle,
+                  s ? "ok" : "FULL", desc->sec_state.encrypted);
     if (s && desc->sec_state.encrypted) {
       s->authed = true;  // returning bonded peer
     } else {
@@ -1464,8 +1572,8 @@ class ServerCallbacks : public NimBLEServerCallbacks {
     NimBLEDevice::startAdvertising();
   }
   void onAuthenticationComplete(ble_gap_conn_desc* desc) override {
-    Serial.printf("BLE auth: pairing complete (handle=%u, encrypted=%d)\r\n",
-                  desc->conn_handle, desc->sec_state.encrypted);
+    Serial.printf("BLE auth: pairing complete (handle=%u, encrypted=%d)\r\n", desc->conn_handle,
+                  desc->sec_state.encrypted);
     AuthSlot* s = findSlot(desc->conn_handle);
     if (desc->sec_state.encrypted) {
       if (s) s->authed = true;
@@ -1508,8 +1616,7 @@ static bool stashBleWrite(NimBLECharacteristic* pChar, char* buf, size_t bufLen,
 // hand-roll their callbacks and must gate manually.
 class GatedStashCallbacks : public NimBLECharacteristicCallbacks {
  public:
-  GatedStashCallbacks(const char* label, char* buf, size_t bufLen,
-                      volatile bool& pendingFlag)
+  GatedStashCallbacks(const char* label, char* buf, size_t bufLen, volatile bool& pendingFlag)
       : label(label), buf(buf), bufLen(bufLen), pendingFlag(pendingFlag) {}
 
   void onWrite(NimBLECharacteristic* pChar, ble_gap_conn_desc* desc) override {
@@ -1541,8 +1648,7 @@ char pendingWifiStr[BLE_WIFI_BUF_LEN];
 class WifiCallbacks : public GatedStashCallbacks {
  public:
   WifiCallbacks()
-      : GatedStashCallbacks("wifi", pendingWifiStr, BLE_WIFI_BUF_LEN,
-                            wifiUpdatePending) {}
+      : GatedStashCallbacks("wifi", pendingWifiStr, BLE_WIFI_BUF_LEN, wifiUpdatePending) {}
 
   void onRead(NimBLECharacteristic* pChar) override {
     // Return SSID only — never expose the password over BLE
@@ -1594,8 +1700,7 @@ char pendingApiKey[MAX_APIKEY_LEN];
 class ApiKeyCallbacks : public GatedStashCallbacks {
  public:
   ApiKeyCallbacks()
-      : GatedStashCallbacks("apikey", pendingApiKey, MAX_APIKEY_LEN,
-                            apiKeyUpdatePending) {}
+      : GatedStashCallbacks("apikey", pendingApiKey, MAX_APIKEY_LEN, apiKeyUpdatePending) {}
 
   void onRead(NimBLECharacteristic* pChar) override {
     pChar->setValue((uint8_t*)nvsApiKey, strlen(nvsApiKey));
@@ -1633,8 +1738,7 @@ class TickerCallbacks : public NimBLECharacteristicCallbacks {
       Serial.println("BLE tickers: cooldown, ignoring");
       return;
     }
-    if (stashBleWrite(pChar, pendingTickerStr, BLE_TICKER_BUF_LEN,
-                      tickerUpdatePending)) {
+    if (stashBleWrite(pChar, pendingTickerStr, BLE_TICKER_BUF_LEN, tickerUpdatePending)) {
       lastBLEFetchMs = millis();
     }
   }
@@ -1673,8 +1777,7 @@ void applyPendingTickers() {
     if (len > 0 && len < MAX_TICKER_LEN) {
       strncpy(tmp[count], token, MAX_TICKER_LEN - 1);
       tmp[count][MAX_TICKER_LEN - 1] = '\0';
-      for (int j = 0; tmp[count][j]; j++)
-        tmp[count][j] = toupper((unsigned char)tmp[count][j]);
+      for (int j = 0; tmp[count][j]; j++) tmp[count][j] = toupper((unsigned char)tmp[count][j]);
       count++;
     }
     token = strtok(nullptr, ",");
@@ -1685,8 +1788,7 @@ void applyPendingTickers() {
     return;
   }
 
-  for (int i = 0; i < count; i++)
-    strncpy(nvsTickers[i], tmp[i], MAX_TICKER_LEN);
+  for (int i = 0; i < count; i++) strncpy(nvsTickers[i], tmp[i], MAX_TICKER_LEN);
   nvsTickerCount = count;
   saveTickersToNVS();
 
@@ -1714,8 +1816,7 @@ class LocsCallbacks : public NimBLECharacteristicCallbacks {
       Serial.println("BLE locations: cooldown, ignoring");
       return;
     }
-    if (stashBleWrite(pChar, pendingLocsStr, BLE_LOCS_BUF_LEN,
-                      locsUpdatePending)) {
+    if (stashBleWrite(pChar, pendingLocsStr, BLE_LOCS_BUF_LEN, locsUpdatePending)) {
       lastBLEFetchMs = millis();
     }
   }
@@ -1764,8 +1865,7 @@ void applyPendingLocations() {
     return;
   }
 
-  for (int i = 0; i < count; i++)
-    strncpy(nvsLocations[i], tmp[i], MAX_LOCATION_LEN);
+  for (int i = 0; i < count; i++) strncpy(nvsLocations[i], tmp[i], MAX_LOCATION_LEN);
   nvsLocationCount = count;
   reparseLocations();
   saveLocationsToNVS();
@@ -1784,26 +1884,25 @@ void applyPendingLocations() {
 
 volatile bool modeUpdatePending = false;
 // Holds the comma-joined mode payload; size = longest valid mode string,
-// "stocks,weather,clock" (20 chars + NUL), plus slack.
+// "stocks,weather,news,clock" (25 chars + NUL), plus slack.
 char pendingModeStr[64];
 
 class ModeCallbacks : public GatedStashCallbacks {
  public:
   ModeCallbacks()
-      : GatedStashCallbacks("mode", pendingModeStr, sizeof(pendingModeStr),
-                            modeUpdatePending) {}
+      : GatedStashCallbacks("mode", pendingModeStr, sizeof(pendingModeStr), modeUpdatePending) {}
 
   void onRead(NimBLECharacteristic* pChar) override {
     char buf[64];
-    int len = formatModeName(buf, sizeof(buf), enabledMask,
-                             currentMode == MODE_SETUP);
+    int len = formatModeName(buf, sizeof(buf), enabledMask, currentMode == MODE_SETUP);
     pChar->setValue((uint8_t*)buf, len);
   }
 };
 
 // Accepts "all", "none", or a comma-separated subset of {stocks, weather,
-// clock}. "none" returns the MASK_NONE_REQUEST sentinel (so applyPendingMode
-// can distinguish it from invalid input). Returns 0 on unknown token, empty
+// news, clock}. "none" returns the MASK_NONE_REQUEST sentinel (so
+// applyPendingMode can distinguish it from invalid input). Returns 0 on unknown
+// token, empty
 // input, or empty mask after parse.
 // parseModePayload() (Mode payload -> category mask) lives in logic.h/.cpp
 // (host-tested).
@@ -2027,8 +2126,7 @@ void applyPendingPower() {
   } else if (strcmp(tok, "on") == 0) {
     setPower(false);
   } else {
-    Serial.printf("BLE power: unknown value \"%s\", ignoring\r\n",
-                  pendingPowerStr);
+    Serial.printf("BLE power: unknown value \"%s\", ignoring\r\n", pendingPowerStr);
   }
 }
 
@@ -2049,14 +2147,12 @@ char pendingDisplayCfgStr[16];  // "15|500" worst case fits comfortably
 class DisplayCfgCallbacks : public GatedStashCallbacks {
  public:
   DisplayCfgCallbacks()
-      : GatedStashCallbacks("display", pendingDisplayCfgStr,
-                            sizeof(pendingDisplayCfgStr),
+      : GatedStashCallbacks("display", pendingDisplayCfgStr, sizeof(pendingDisplayCfgStr),
                             displayCfgUpdatePending) {}
 
   void onRead(NimBLECharacteristic* pChar) override {
     char buf[16];
-    int n = snprintf(buf, sizeof(buf), "%u|%u", displayBrightness,
-                     (unsigned)scrollSpeedMs);
+    int n = snprintf(buf, sizeof(buf), "%u|%u", displayBrightness, (unsigned)scrollSpeedMs);
     pChar->setValue((uint8_t*)buf, n);
   }
 };
@@ -2078,8 +2174,7 @@ void applyPendingDisplayCfg() {
   long bright = strtol(buf, &endB, 10);
   long scroll = strtol(sep + 1, &endS, 10);
   if (endB == buf || endS == sep + 1) {
-    Serial.printf("BLE display: non-numeric \"%s|%s\", ignoring\r\n", buf,
-                  sep + 1);
+    Serial.printf("BLE display: non-numeric \"%s|%s\", ignoring\r\n", buf, sep + 1);
     return;
   }
 
@@ -2114,8 +2209,7 @@ char pendingTzStr[MAX_TZ_LEN];
 class TimezoneCallbacks : public GatedStashCallbacks {
  public:
   TimezoneCallbacks()
-      : GatedStashCallbacks("timezone", pendingTzStr, MAX_TZ_LEN,
-                            tzUpdatePending) {}
+      : GatedStashCallbacks("timezone", pendingTzStr, MAX_TZ_LEN, tzUpdatePending) {}
 
   void onRead(NimBLECharacteristic* pChar) override {
     pChar->setValue((uint8_t*)nvsTimezone, strlen(nvsTimezone));
@@ -2169,8 +2263,8 @@ class AuthCallbacks : public NimBLECharacteristicCallbacks {
     }
     std::string val = pChar->getValue();
     // Trim trailing whitespace/newlines.
-    while (!val.empty() && (val.back() == ' ' || val.back() == '\n' ||
-                            val.back() == '\r' || val.back() == '\t')) {
+    while (!val.empty() &&
+           (val.back() == ' ' || val.back() == '\n' || val.back() == '\r' || val.back() == '\t')) {
       val.pop_back();
     }
     if (val == nvsPin) {
@@ -2180,14 +2274,14 @@ class AuthCallbacks : public NimBLECharacteristicCallbacks {
       Serial.printf("BLE auth: conn=%u authenticated\r\n", desc->conn_handle);
     } else {
       s->failCount++;
-      Serial.printf("BLE auth: bad PIN from conn=%u (fail %u/%u)\r\n",
-                    desc->conn_handle, s->failCount, AUTH_FAIL_THRESHOLD);
+      Serial.printf("BLE auth: bad PIN from conn=%u (fail %u/%u)\r\n", desc->conn_handle,
+                    s->failCount, AUTH_FAIL_THRESHOLD);
       if (s->failCount >= AUTH_FAIL_THRESHOLD) {
         s->lockoutUntilMs = millis() + AUTH_LOCKOUT_MS;
         if (s->lockoutUntilMs == 0) s->lockoutUntilMs = 1;  // avoid sentinel
         s->failCount = 0;
-        Serial.printf("BLE auth: conn=%u locked out for %ums\r\n",
-                      desc->conn_handle, AUTH_LOCKOUT_MS);
+        Serial.printf("BLE auth: conn=%u locked out for %ums\r\n", desc->conn_handle,
+                      AUTH_LOCKOUT_MS);
       }
     }
   }
@@ -2200,9 +2294,7 @@ class AuthCallbacks : public NimBLECharacteristicCallbacks {
 #define BLE_VERSION_CHAR_UUID "beb5483e-36e1-4688-b7f5-ea07361b26b0"
 
 class VersionCallbacks : public NimBLECharacteristicCallbacks {
-  void onRead(NimBLECharacteristic* pChar) override {
-    pChar->setValue(FW_VERSION);
-  }
+  void onRead(NimBLECharacteristic* pChar) override { pChar->setValue(FW_VERSION); }
 };
 
 // ----------------------------------------------------------------------------
@@ -2296,8 +2388,7 @@ static void startResetCountdown(const char* source) {
   resetCountdownActive = true;
   resetCountdownStartMs = millis();
   resetCountdownSource = source;
-  Serial.printf("%s: factory reset in %ds — unplug now to abort\r\n",
-                source, RESET_COUNTDOWN_SECS);
+  Serial.printf("%s: factory reset in %ds — unplug now to abort\r\n", source, RESET_COUNTDOWN_SECS);
 }
 
 // Returns true while the countdown owns the display (loop() then skips its own
@@ -2323,7 +2414,7 @@ void applyPendingCmd() {
   cmdPending = false;
 
   if (strcmp(pendingCmd, "reload") == 0) {
-    Serial.println("BLE cmd: reloading stocks");
+    Serial.println("BLE cmd: reloading stocks/weather/news");
     triggerFetch(true);
   } else if (strcmp(pendingCmd, "reset") == 0) {
     // Deferred behind a visible countdown (shared by BLE and console) so the
@@ -2380,41 +2471,32 @@ void initBLE() {
   NimBLEService* pService = pServer->createService(BLE_SERVICE_UUID);
 
   pService
-      ->createCharacteristic(BLE_TICKER_CHAR_UUID,
-                             NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE)
+      ->createCharacteristic(BLE_TICKER_CHAR_UUID, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE)
       ->setCallbacks(new TickerCallbacks());
-  pService
-      ->createCharacteristic(BLE_MODE_CHAR_UUID,
-                             NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE)
+  pService->createCharacteristic(BLE_MODE_CHAR_UUID, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE)
       ->setCallbacks(new ModeCallbacks());
   pService->createCharacteristic(BLE_CMD_CHAR_UUID, NIMBLE_PROPERTY::WRITE)
       ->setCallbacks(new CmdCallbacks());
-  pService
-      ->createCharacteristic(BLE_WIFI_CHAR_UUID,
-                             NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE)
+  pService->createCharacteristic(BLE_WIFI_CHAR_UUID, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE)
       ->setCallbacks(new WifiCallbacks());
   pService
-      ->createCharacteristic(BLE_APIKEY_CHAR_UUID,
-                             NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE)
+      ->createCharacteristic(BLE_APIKEY_CHAR_UUID, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE)
       ->setCallbacks(new ApiKeyCallbacks());
-  pService
-      ->createCharacteristic(BLE_LOCS_CHAR_UUID,
-                             NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE)
+  pService->createCharacteristic(BLE_LOCS_CHAR_UUID, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE)
       ->setCallbacks(new LocsCallbacks());
   pService
-      ->createCharacteristic(BLE_STATUS_CHAR_UUID,
-                             NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE)
+      ->createCharacteristic(BLE_STATUS_CHAR_UUID, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE)
       ->setCallbacks(new StatusCallbacks());
-  NimBLECharacteristic* pVersionChar = pService->createCharacteristic(
-      BLE_VERSION_CHAR_UUID, NIMBLE_PROPERTY::READ);
+  NimBLECharacteristic* pVersionChar =
+      pService->createCharacteristic(BLE_VERSION_CHAR_UUID, NIMBLE_PROPERTY::READ);
   pVersionChar->setCallbacks(new VersionCallbacks());
   // Seeded so the first read works even before onRead fires on this peer.
   pVersionChar->setValue(FW_VERSION);
 
-  pPowerChar = pService->createCharacteristic(
-      BLE_POWER_CHAR_UUID, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE);
-  pPowerChar->setCallbacks(new GatedStashCallbacks(
-      "power", pendingPowerStr, sizeof(pendingPowerStr), powerUpdatePending));
+  pPowerChar = pService->createCharacteristic(BLE_POWER_CHAR_UUID,
+                                              NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE);
+  pPowerChar->setCallbacks(new GatedStashCallbacks("power", pendingPowerStr,
+                                                   sizeof(pendingPowerStr), powerUpdatePending));
   // See setPower() for why we use the explicit (uint8_t*, len) form.
   pPowerChar->setValue((uint8_t*)"on", 2);
 
@@ -2423,8 +2505,8 @@ void initBLE() {
   pDisplayChar->setCallbacks(new DisplayCfgCallbacks());
   // Seeded like Version; explicit (uint8_t*, len) form — see setPower().
   char displaySeed[16];
-  int displaySeedLen = snprintf(displaySeed, sizeof(displaySeed), "%u|%u",
-                                displayBrightness, (unsigned)scrollSpeedMs);
+  int displaySeedLen = snprintf(displaySeed, sizeof(displaySeed), "%u|%u", displayBrightness,
+                                (unsigned)scrollSpeedMs);
   pDisplayChar->setValue((uint8_t*)displaySeed, displaySeedLen);
 
   NimBLECharacteristic* pTzChar = pService->createCharacteristic(
@@ -2432,9 +2514,7 @@ void initBLE() {
   pTzChar->setCallbacks(new TimezoneCallbacks());
   pTzChar->setValue((uint8_t*)nvsTimezone, strlen(nvsTimezone));
 
-  pService
-      ->createCharacteristic(BLE_AUTH_CHAR_UUID,
-                             NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE)
+  pService->createCharacteristic(BLE_AUTH_CHAR_UUID, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE)
       ->setCallbacks(new AuthCallbacks());
 
   pService->start();
@@ -2537,9 +2617,6 @@ static void enterBootMode() {
 
 void setup() {
   Serial.begin(115200);
-  // USB-CDC default is a 250 ms blocking write timeout — headless, every
-  // print would stall the loop (visible matrix stutter). 0 = drop bytes.
-  Serial.setTxTimeoutMs(0);
   // Wait up to 2 s for USB enumeration so the boot banner lands in the
   // monitor; falls through so a headless boot isn't wedged.
   unsigned long serialWaitStart = millis();
@@ -2549,19 +2626,17 @@ void setup() {
   // Boot diagnostic: categorize the last reset (POWERON/EXT=external,
   // SW=ESP.restart, PANIC=crash, INT_WDT/TASK_WDT=watchdog, BROWNOUT).
   {
-    static const char* kRst[] = {"UNKNOWN", "POWERON",  "EXT",      "SW",
-                                 "PANIC",   "INT_WDT",  "TASK_WDT", "WDT",
-                                 "DEEPSLEEP", "BROWNOUT", "SDIO"};
+    static const char* kRst[] = {"UNKNOWN",  "POWERON", "EXT",       "SW",       "PANIC", "INT_WDT",
+                                 "TASK_WDT", "WDT",     "DEEPSLEEP", "BROWNOUT", "SDIO"};
     esp_reset_reason_t rr = esp_reset_reason();
+
     Serial.printf("[boot] reset reason: %s (%d)\r\n",
-                  (rr < (int)(sizeof(kRst) / sizeof(kRst[0]))) ? kRst[rr]
-                                                               : "?",
-                  (int)rr);
+                  (rr < (int)(sizeof(kRst) / sizeof(kRst[0]))) ? kRst[rr] : "?", (int)rr);
   }
 
   dataMutex = xSemaphoreCreateMutex();
-  xTaskCreatePinnedToCore(fetchTask, "fetchStocks", FETCH_TASK_STACK, nullptr,
-                          1, &fetchTaskHandle, 0);
+  xTaskCreatePinnedToCore(fetchTask, "fetchStocks", FETCH_TASK_STACK, nullptr, 1, &fetchTaskHandle,
+                          0);
 
   pinMode(BUTTON_PIN, INPUT_PULLUP);
 
@@ -2597,22 +2672,19 @@ void setup() {
 // ----------------------------------------------------------------------------
 #if CONSOLE_ENABLED
 
-static void consoleSetPending(char* dest, size_t destLen, const char* src,
-                              volatile bool& flag) {
+static void consoleSetPending(char* dest, size_t destLen, const char* src, volatile bool& flag) {
   strncpy(dest, src, destLen - 1);
   dest[destLen - 1] = '\0';
   flag = true;
 }
 
 static void consolePrintInfo() {
-  Serial.printf("fw=v%s mode=%d mask=0x%02X\r\n", FW_VERSION, currentMode,
-                enabledMask);
+  Serial.printf("fw=v%s mode=%d mask=0x%02X\r\n", FW_VERSION, currentMode, enabledMask);
   bool up = WiFi.isConnected();
   Serial.printf("wifi=%s ip=%s\r\n", up ? "connected" : "disconnected",
                 up ? WiFi.localIP().toString().c_str() : "-");
   Serial.printf("pin=%s enforce=%s\r\n", nvsPin, nvsPinEnforce ? "on" : "off");
-  Serial.printf("bright=%u scroll=%ums timer=%s\r\n", displayBrightness,
-                (unsigned)scrollSpeedMs,
+  Serial.printf("bright=%u scroll=%ums timer=%s\r\n", displayBrightness, (unsigned)scrollSpeedMs,
                 timerPhase != TIMER_OFF ? "running" : "off");
 }
 
@@ -2644,29 +2716,24 @@ static void dispatchConsoleCmd(const ConsoleCmd& cmd) {
         Serial.println("error: ssid too long");
         return;
       }
-      consoleSetPending(pendingWifiStr, sizeof(pendingWifiStr), joined,
-                        wifiUpdatePending);
+      consoleSetPending(pendingWifiStr, sizeof(pendingWifiStr), joined, wifiUpdatePending);
       Serial.println("ok: wifi");
       return;
     }
     case CONSOLE_APIKEY:
-      consoleSetPending(pendingApiKey, sizeof(pendingApiKey), cmd.arg,
-                        apiKeyUpdatePending);
+      consoleSetPending(pendingApiKey, sizeof(pendingApiKey), cmd.arg, apiKeyUpdatePending);
       Serial.println("ok: apikey");
       return;
     case CONSOLE_TICKERS:
-      consoleSetPending(pendingTickerStr, sizeof(pendingTickerStr), cmd.arg,
-                        tickerUpdatePending);
+      consoleSetPending(pendingTickerStr, sizeof(pendingTickerStr), cmd.arg, tickerUpdatePending);
       Serial.println("ok: tickers");
       return;
     case CONSOLE_LOCATIONS:
-      consoleSetPending(pendingLocsStr, sizeof(pendingLocsStr), cmd.arg,
-                        locsUpdatePending);
+      consoleSetPending(pendingLocsStr, sizeof(pendingLocsStr), cmd.arg, locsUpdatePending);
       Serial.println("ok: locations");
       return;
     case CONSOLE_MODE:
-      consoleSetPending(pendingModeStr, sizeof(pendingModeStr), cmd.arg,
-                        modeUpdatePending);
+      consoleSetPending(pendingModeStr, sizeof(pendingModeStr), cmd.arg, modeUpdatePending);
       Serial.println("ok: mode");
       return;
     case CONSOLE_SIGN: {
@@ -2678,19 +2745,16 @@ static void dispatchConsoleCmd(const ConsoleCmd& cmd) {
         Serial.println("error: sign text too long");
         return;
       }
-      consoleSetPending(pendingStatusStr, sizeof(pendingStatusStr), buf,
-                        statusUpdatePending);
+      consoleSetPending(pendingStatusStr, sizeof(pendingStatusStr), buf, statusUpdatePending);
       Serial.println("ok: sign");
       return;
     }
     case CONSOLE_POWER:
-      consoleSetPending(pendingPowerStr, sizeof(pendingPowerStr), cmd.arg,
-                        powerUpdatePending);
+      consoleSetPending(pendingPowerStr, sizeof(pendingPowerStr), cmd.arg, powerUpdatePending);
       Serial.println("ok: power");
       return;
     case CONSOLE_TZ:
-      consoleSetPending(pendingTzStr, sizeof(pendingTzStr), cmd.arg,
-                        tzUpdatePending);
+      consoleSetPending(pendingTzStr, sizeof(pendingTzStr), cmd.arg, tzUpdatePending);
       Serial.println("ok: tz");
       return;
 
@@ -2802,10 +2866,9 @@ static void heartbeat(unsigned long nowMs) {
   static unsigned long lastHeartbeatMs = 0;
   if (nowMs - lastHeartbeatMs <= 30000) return;
   lastHeartbeatMs = nowMs;
-  Serial.printf(
-      "[hb] v%s mode=%d mask=0x%02X fetching=%d heap=%u min=%u millis=%lu\r\n",
-      FW_VERSION, currentMode, enabledMask, fetching, (unsigned)ESP.getFreeHeap(),
-      (unsigned)ESP.getMinFreeHeap(), nowMs);
+  Serial.printf("[hb] v%s mode=%d mask=0x%02X fetching=%d heap=%u min=%u millis=%lu\r\n",
+                FW_VERSION, currentMode, enabledMask, fetching, (unsigned)ESP.getFreeHeap(),
+                (unsigned)ESP.getMinFreeHeap(), nowMs);
 }
 
 // Drain the deferred-apply flags set by BLE callbacks (Core 0) and the serial
@@ -2833,12 +2896,23 @@ static void renderActiveFrame() {
     tickActiveStatus();
   } else if (currentMode == MODE_IDLE) {
     tickIdle();
-  } else if (currentMode == MODE_CONTENT && enabledMask == BIT_CLOCK &&
-             timeReady) {
+  } else if (currentMode == MODE_CONTENT && enabledMask == BIT_CLOCK && timeReady) {
     tickStaticClock();
+  } else if (awaitingNewsPause) {
+    if (millis() >= newsPauseEnd) {
+      awaitingNewsPause = false;
+      display.displayReset();
+      showNext();
+    }
   } else if (display.displayAnimate()) {
-    display.displayReset();
-    showNext();
+    if (currentBit == BIT_NEWS && newsCount > 0) {
+      display.displayClear();
+      awaitingNewsPause = true;
+      newsPauseEnd = millis() + NEWS_PAUSE_MS;
+    } else {
+      display.displayReset();
+      showNext();
+    }
   }
 }
 
@@ -2856,11 +2930,9 @@ void loop() {
     return;
   }
 
-  if (currentMode == MODE_SETUP &&
-      millis() - setupLastActivityMs > SETUP_TIMEOUT_MS) {
+  if (currentMode == MODE_SETUP && millis() - setupLastActivityMs > SETUP_TIMEOUT_MS) {
     if (wifiConfigured()) {
-      Serial.println(
-          "Setup: 60s no activity, falling to content (mask unchanged)");
+      Serial.println("Setup: 60s no activity, falling to content (mask unchanged)");
       enterContent();
     } else {
       // No WiFi → every category is dead; staying on the name scroll beats

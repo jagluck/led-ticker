@@ -14,8 +14,9 @@
 // via `& MASK_ALL` on load in main.cpp.
 #define BIT_STOCKS 0x01
 #define BIT_WEATHER 0x04
+#define BIT_NEWS 0x10
 #define BIT_CLOCK 0x08
-#define MASK_ALL (BIT_STOCKS | BIT_WEATHER | BIT_CLOCK)
+#define MASK_ALL (BIT_STOCKS | BIT_WEATHER | BIT_NEWS | BIT_CLOCK)
 
 // Parser sentinel for the explicit "none" mode (sign-only with idle pixel
 // between signs). Distinct from 0 (which parseModePayload returns for invalid
@@ -26,12 +27,12 @@
 // Parse a Mode-characteristic payload into an enabled-category mask:
 //   "all"  -> MASK_ALL
 //   "none" -> MASK_NONE_REQUEST
-//   CSV of stocks|weather|clock (surrounding whitespace tolerated) -> OR of bits
+//   CSV of stocks|weather|news|clock (surrounding whitespace tolerated) -> OR of bits
 //   anything malformed (unknown token, empty) -> 0
 uint8_t parseModePayload(const char* in);
 
-// Cyclic rotation order of the category bits: STOCKS -> WEATHER -> CLOCK ->
-// STOCKS. Any non-category input falls through to BIT_STOCKS.
+// Cyclic rotation order of the category bits: STOCKS -> WEATHER -> NEWS ->
+// CLOCK -> STOCKS. Any non-category input falls through to BIT_STOCKS.
 uint8_t nextBit(uint8_t b);
 
 // Inverse of parseModePayload: render an enabled-category mask back to its

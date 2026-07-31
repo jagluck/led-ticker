@@ -16,12 +16,14 @@ void test_mode_none(void) {
 void test_mode_single(void) {
   TEST_ASSERT_EQUAL_UINT8(BIT_STOCKS, parseModePayload("stocks"));
   TEST_ASSERT_EQUAL_UINT8(BIT_WEATHER, parseModePayload("weather"));
+  TEST_ASSERT_EQUAL_UINT8(BIT_NEWS, parseModePayload("news"));
   TEST_ASSERT_EQUAL_UINT8(BIT_CLOCK, parseModePayload("clock"));
 }
 void test_mode_csv(void) {
   TEST_ASSERT_EQUAL_UINT8(BIT_STOCKS | BIT_WEATHER,
                           parseModePayload("stocks,weather"));
-  TEST_ASSERT_EQUAL_UINT8(MASK_ALL, parseModePayload("stocks,weather,clock"));
+  TEST_ASSERT_EQUAL_UINT8(MASK_ALL,
+                          parseModePayload("stocks,weather,news,clock"));
 }
 void test_mode_csv_with_spaces(void) {
   TEST_ASSERT_EQUAL_UINT8(BIT_STOCKS | BIT_CLOCK,
@@ -125,7 +127,8 @@ void test_dst_november_end_boundary(void) {
 // ---------------------------------------------------------------------------
 void test_next_bit_cycle(void) {
   TEST_ASSERT_EQUAL_UINT8(BIT_WEATHER, nextBit(BIT_STOCKS));
-  TEST_ASSERT_EQUAL_UINT8(BIT_CLOCK, nextBit(BIT_WEATHER));
+  TEST_ASSERT_EQUAL_UINT8(BIT_NEWS, nextBit(BIT_WEATHER));
+  TEST_ASSERT_EQUAL_UINT8(BIT_CLOCK, nextBit(BIT_NEWS));
   TEST_ASSERT_EQUAL_UINT8(BIT_STOCKS, nextBit(BIT_CLOCK));
 }
 
@@ -146,8 +149,8 @@ void test_format_named_masks(void) {
 }
 void test_format_subset_order(void) {
   char buf[64];
-  formatModeName(buf, sizeof(buf), BIT_STOCKS | BIT_CLOCK, false);
-  TEST_ASSERT_EQUAL_STRING("stocks,clock", buf);
+  formatModeName(buf, sizeof(buf), BIT_STOCKS | BIT_NEWS | BIT_CLOCK, false);
+  TEST_ASSERT_EQUAL_STRING("stocks,news,clock", buf);
 }
 void test_format_parse_roundtrip(void) {
   // Every non-empty subset survives format -> parse unchanged. The empty mask

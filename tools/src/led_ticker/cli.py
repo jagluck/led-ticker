@@ -137,7 +137,7 @@ def cmd_locations(args, pin, device):
 def cmd_mode(args, pin, device):
     if not args:
         print("Usage: led.py mode all | none | <category> [<category> ...]")
-        print("  where <category> is one of: stocks, weather, clock")
+        print("  where <category> is one of: stocks, weather, news, clock")
         print("  'none' = sign-only (idle pixel between signs)")
         return 1
     # validate before connecting
@@ -334,14 +334,14 @@ def _print_help():
     print("  status      [TEXT [MINUTES] | clear] set / clear the active sign (0 min = indefinite)")
     print("  timer       <minutes 1-99 | cancel>  start/cancel a countdown timer on the LED")
     print("  locations   'LAT,LON,LABEL' ...       set weather locations (look up lat/lon online)")
-    print("  mode        all | <cat> [<cat> ...]  switch display mode (cat: stocks|weather|clock)")
+    print("  mode        all | <cat> [<cat> ...]  switch display mode (cat: stocks|weather|news|clock)")
     print("  power       on | off                 turn display on or off (volatile)")
     print("  display     [brightness 0-15 | speed 20-500 | B MS]  show / set brightness & scroll speed")
     print("  timezone    [POSIX_TZ]               show / set clock timezone")
     print("  apikey      KEY                      set Finnhub API key")
     print("  wifi        SSID PASSWORD            update WiFi credentials and reconnect")
     print(f"  get         {'|'.join(GET_KEYS)}  read a setting")
-    print("  reload                               force immediate stock refresh")
+    print("  reload                               force immediate stock/weather/news refresh")
     print("  reset                                clear NVS and revert to defaults (rotates PIN)")
     print("  pin         [DIGITS | clear]         save / show / clear local PIN cache")
     print("  pin-enforce on | off                 toggle device-side PIN enforcement")

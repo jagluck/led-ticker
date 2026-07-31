@@ -112,6 +112,7 @@ def test_locations_payload_exact_boundary():
 def test_normalize_mode():
     assert P.normalize_mode(["all"]) == "all"
     assert P.normalize_mode(["none"]) == "none"
+    assert P.normalize_mode(["news"]) == "news"
     assert P.normalize_mode(["stocks", "stocks", "clock"]) == "stocks,clock"
     with pytest.raises(ValidationError):
         P.normalize_mode(["bogus"])

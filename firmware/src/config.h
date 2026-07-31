@@ -23,8 +23,8 @@ const int defaultLocationCount =
 
 #define HARDWARE_TYPE MD_MAX72XX::FC16_HW  // real DIYables 4-in-1 panel
 #define MAX_DEVICES 4
-#define DIN_PIN 6  // MOSI
-#define CLK_PIN 4  // SCK
+#define DIN_PIN 6  // MOSI USE 23 FOR esp32dev
+#define CLK_PIN 4  // SCK USE 18 FOR esp32dev
 #define CS_PIN 5
 #define RGB_LED_PIN 48  // Freenove onboard WS2812
 // Factory-reset button. BOOT button on most ESP32-S3 devkits is GPIO 0.
@@ -68,6 +68,8 @@ const int defaultLocationCount =
 // no per-fleet obligation. Google primary smears leap seconds (no 23:59:60).
 #define NTP_SERVER_1 "time.google.com"
 #define NTP_SERVER_2 "time.cloudflare.com"
+
+#define NEWS_PAUSE_MS 3000
 
 // How often loop() triggers a stocks+weather fetch (5 minutes by default).
 #define FETCH_INTERVAL_MS (5 * 60 * 1000)

@@ -6,3 +6,4 @@ version = 1
 # these point at fresh artifacts. Paths are relative to this file (firmware/).
 firmware = '.pio/build/wokwi/firmware.bin'
 elf = '.pio/build/wokwi/firmware.elf'
+rfc2217ServerPort = 4010
